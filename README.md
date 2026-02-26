@@ -22,7 +22,7 @@ Nekaise Agent works in the channels teams already use and is designed to be exte
 ## Quick Start
 
 ```bash
-git clone https://github.com/<your-org>/opennekaise.git
+git clone git@github.com:OpenNekaise/opennekaise.git
 cd opennekaise
 claude
 ```
@@ -38,7 +38,7 @@ Then run `/setup`.
 
 ## Core Capabilities
 
-- WhatsApp messaging (default channel)
+- Slack messaging (default channel)
 - Isolated group contexts and a main admin channel
 - Scheduled tasks and outbound notifications
 - Web fetch/research support
@@ -59,15 +59,6 @@ Key files:
 - `src/container-runner.ts` - container lifecycle and mounts
 - `src/task-scheduler.ts` - recurring tasks
 - `src/db.ts` - persistent state and message storage
-
-## Customizing
-
-OpenNekaise is built to be forked and adapted:
-
-- Change trigger, persona, and routing behavior in code
-- Add channels/integrations via skills (`/add-slack`, `/add-telegram`, `/add-discord`, `/add-gmail`)
-
-Use `/customize` for guided changes.
 
 ## Upstream Credit
 
