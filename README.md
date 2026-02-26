@@ -14,7 +14,7 @@ Too much for humans to process continuously in real time.
 
 What if buildings could sense that data, reason about it, and act before problems become failures?
 
-That is the goal behind TwinVista, a large research project at KTH funded by Energimyndigheten.
+That is the goal behind [TwinVista](https://resurseffektivbebyggelse.se/projekt/twinvista/), a large research project at KTH funded by [Energimyndigheten](https://www.energimyndigheten.se/en/).
 OpenNekaise is the open-source workstream. Nekaise Agent is what we ship into real building teams.
 
 Nekaise Agent works in the channels teams already use and is designed to be extended through skills.
@@ -68,6 +68,10 @@ OpenNekaise is built to be forked and adapted:
 - Add channels/integrations via skills (`/add-slack`, `/add-telegram`, `/add-discord`, `/add-gmail`)
 
 Use `/customize` for guided changes.
+
+## Upstream Credit
+
+OpenNekaise builds on [NanoClaw](https://github.com/qwibitai/nanoclaw). Thanks to the NanoClaw maintainers and contributors for creating the lightweight, container-isolated foundation this project extends.
 
 ## License
 

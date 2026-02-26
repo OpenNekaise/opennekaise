@@ -1,10 +1,10 @@
-# NanoClaw
+# OpenNekaise
 
-Personal Claude assistant. See [README.md](README.md) for philosophy and setup. See [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md) for architecture decisions.
+Open-source building intelligence platform shipping Nekaise Agent. See [README.md](README.md) for setup and project goals. See [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md) for architecture decisions.
 
 ## Quick Context
 
-Single Node.js process that connects to WhatsApp, routes messages to Claude Agent SDK running in containers (Linux VMs). Each group has isolated filesystem and memory.
+Single Node.js process that connects to chat channels, routes messages to Claude Agent SDK running in containers, and keeps per-group filesystem and memory isolation.
 
 ## Key Files
 
@@ -28,7 +28,7 @@ Single Node.js process that connects to WhatsApp, routes messages to Claude Agen
 | `/setup` | First-time installation, authentication, service configuration |
 | `/customize` | Adding channels, integrations, changing behavior |
 | `/debug` | Container issues, logs, troubleshooting |
-| `/update` | Pull upstream NanoClaw changes, merge with customizations, run migrations |
+| `/update` | Pull upstream OpenNekaise changes, merge with customizations, run migrations |
 | `/qodo-pr-resolver` | Fetch and fix Qodo PR review issues interactively or in batch |
 | `/get-qodo-rules` | Load org- and repo-level coding rules from Qodo before code tasks |
 
@@ -45,14 +45,14 @@ npm run build        # Compile TypeScript
 Service management:
 ```bash
 # macOS (launchd)
-launchctl load ~/Library/LaunchAgents/com.nanoclaw.plist
-launchctl unload ~/Library/LaunchAgents/com.nanoclaw.plist
-launchctl kickstart -k gui/$(id -u)/com.nanoclaw  # restart
+launchctl load ~/Library/LaunchAgents/com.opennekaise.agent.plist
+launchctl unload ~/Library/LaunchAgents/com.opennekaise.agent.plist
+launchctl kickstart -k gui/$(id -u)/com.opennekaise.agent  # restart
 
 # Linux (systemd)
-systemctl --user start nanoclaw
-systemctl --user stop nanoclaw
-systemctl --user restart nanoclaw
+systemctl --user start opennekaise-agent
+systemctl --user stop opennekaise-agent
+systemctl --user restart opennekaise-agent
 ```
 
 ## Container Build Cache

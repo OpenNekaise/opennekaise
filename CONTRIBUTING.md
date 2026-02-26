@@ -2,13 +2,13 @@
 
 ## Source Code Changes
 
-**Accepted:** Bug fixes, security fixes, simplifications, reducing code.
+**Accepted:** Bug fixes, security fixes, reliability improvements, simplifications, and documentation improvements.
 
-**Not accepted:** Features, capabilities, compatibility, enhancements. These should be skills.
+**Usually not accepted in core:** New capabilities, broad compatibility expansion, or feature growth. These should generally be skills.
 
 ## Skills
 
-A [skill](https://code.claude.com/docs/en/skills) is a markdown file in `.claude/skills/` that teaches Claude Code how to transform a NanoClaw installation.
+A [skill](https://code.claude.com/docs/en/skills) is a markdown file in `.claude/skills/` that teaches Claude Code how to transform an OpenNekaise installation.
 
 A PR that contributes a skill should not modify any source files.
 
@@ -16,7 +16,7 @@ Your skill should contain the **instructions** Claude follows to add the feature
 
 ### Why?
 
-Every user should have clean and minimal code that does exactly what they need. Skills let users selectively add features to their fork without inheriting code for features they don't want.
+Every user should have clean and minimal core code that does exactly what they need. Skills let users selectively add capabilities to their fork without inheriting features they do not use.
 
 ### Testing
 
