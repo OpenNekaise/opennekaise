@@ -1,7 +1,7 @@
 {
-  "name": "nanoclaw",
+  "name": "opennekaise",
   "version": "1.1.3",
-  "description": "Personal Claude assistant. Lightweight, secure, customizable.",
+  "description": "Open building intelligence platform shipping Nekaise Agent.",
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
