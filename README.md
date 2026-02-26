@@ -57,6 +57,8 @@ Key files:
 
 OpenNekaise builds on [NanoClaw](https://github.com/qwibitai/nanoclaw). Thanks to the NanoClaw maintainers and contributors for creating the lightweight, container-isolated foundation this project extends.
 
+We also thank [OpenClaw](https://github.com/openclaw/openclaw) and its contributors for opening a new way of working with personal AI agents and helping move this space forward.
+
 ## License
 
 MIT
