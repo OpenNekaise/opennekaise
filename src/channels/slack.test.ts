@@ -583,6 +583,73 @@ describe('SlackChannel', () => {
       });
     });
 
+    it('replies in a thread anchored to latest channel message', async () => {
+      const opts = createTestOpts();
+      const channel = new SlackChannel(opts);
+      await channel.connect();
+
+      // Simulate a user asking in-channel (not in a thread yet)
+      await triggerMessageEvent(
+        createMessageEvent({
+          ts: '1704067202.000000',
+          text: 'Can you analyze this building?',
+        }),
+      );
+
+      await channel.sendMessage('slack:C0123456789', 'Sure, checking now');
+
+      expect(currentApp().client.chat.postMessage).toHaveBeenLastCalledWith({
+        channel: 'C0123456789',
+        text: 'Sure, checking now',
+        thread_ts: '1704067202.000000',
+      });
+    });
+
+    it('continues replying in existing thread using parent thread_ts', async () => {
+      const opts = createTestOpts();
+      const channel = new SlackChannel(opts);
+      await channel.connect();
+
+      // Simulate a user asking inside an existing thread
+      await triggerMessageEvent(
+        createMessageEvent({
+          ts: '1704067203.000000',
+          threadTs: '1704067000.000000',
+          text: 'Any update on heating loop?',
+        }),
+      );
+
+      await channel.sendMessage('slack:C0123456789', 'Yes, here is the update');
+
+      expect(currentApp().client.chat.postMessage).toHaveBeenLastCalledWith({
+        channel: 'C0123456789',
+        text: 'Yes, here is the update',
+        thread_ts: '1704067000.000000',
+      });
+    });
+
+    it('does not create thread context from bot messages', async () => {
+      const opts = createTestOpts();
+      const channel = new SlackChannel(opts);
+      await channel.connect();
+
+      await triggerMessageEvent(
+        createMessageEvent({
+          subtype: 'bot_message',
+          botId: 'B_MY_BOT',
+          ts: '1704067204.000000',
+          text: 'Internal bot note',
+        }),
+      );
+
+      await channel.sendMessage('slack:C0123456789', 'Operator-facing response');
+
+      expect(currentApp().client.chat.postMessage).toHaveBeenLastCalledWith({
+        channel: 'C0123456789',
+        text: 'Operator-facing response',
+      });
+    });
+
     it('queues message when disconnected', async () => {
       const opts = createTestOpts();
       const channel = new SlackChannel(opts);
