@@ -18,6 +18,10 @@ groups/global/*
 !groups/main/CLAUDE.md
 !groups/global/CLAUDE.md
 
+# Building data root (keep folder, ignore user data)
+home/*
+!home/.gitkeep
+
 # Secrets
 *.keys.json
 .env
@@ -30,6 +34,6 @@ groups/global/*
 .vscode/
 
 # Skills system (local per-installation state)
-.nanoclaw/
+.opennekaise/
 
 agents-sdk-docs

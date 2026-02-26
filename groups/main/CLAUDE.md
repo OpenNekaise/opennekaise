@@ -36,7 +36,7 @@ Stakeholder profiles:
 
 Your output is sent to the user or group.
 
-You also have `mcp__nanoclaw__send_message` which sends a message immediately while you're still working. Use it when long tasks need an immediate acknowledgement.
+You also have `mcp__opennekaise__send_message` which sends a message immediately while you're still working. Use it when long tasks need an immediate acknowledgement.
 
 ## Message Formatting
 
@@ -69,6 +69,13 @@ Key paths inside the container:
 ---
 
 ## Managing Groups
+
+### Building Channel Mapping
+
+For OpenNekaise building isolation, register each building Slack channel with a folder slug that matches the building folder under project `home/`.
+
+Example:
+- Slack channel `rio-10` -> group folder `rio-10` -> mounted data path `/home/rio-10` in that channel container
 
 ### Finding Available Groups
 

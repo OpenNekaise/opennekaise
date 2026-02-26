@@ -1,5 +1,5 @@
 /**
- * Container Runner for NanoClaw
+ * Container Runner for OpenNekaise
  * Spawns agent execution in containers and handles IPC
  */
 import { ChildProcess, exec, spawn } from 'child_process';
@@ -12,6 +12,7 @@ import {
   CONTAINER_TIMEOUT,
   DATA_DIR,
   GROUPS_DIR,
+  HOME_DATA_DIR,
   IDLE_TIMEOUT,
   TIMEZONE,
 } from './config.js';
@@ -97,6 +98,22 @@ function buildVolumeMounts(
         containerPath: '/workspace/global',
         readonly: true,
       });
+    }
+
+    // Building data isolation:
+    // each non-main group only gets access to its matching home/<group-folder>.
+    const buildingHostDir = path.join(HOME_DATA_DIR, group.folder);
+    if (fs.existsSync(buildingHostDir)) {
+      mounts.push({
+        hostPath: buildingHostDir,
+        containerPath: `/home/${group.folder}`,
+        readonly: true,
+      });
+    } else {
+      logger.debug(
+        { group: group.name, expectedPath: buildingHostDir },
+        'No matching building folder under home/, skipping building data mount',
+      );
     }
   }
 
@@ -252,7 +269,7 @@ export async function runContainerAgent(
 
   const mounts = buildVolumeMounts(group, input.isMain);
   const safeName = group.folder.replace(/[^a-zA-Z0-9-]/g, '-');
-  const containerName = `nanoclaw-${safeName}-${Date.now()}`;
+  const containerName = `opennekaise-${safeName}-${Date.now()}`;
   const containerArgs = buildContainerArgs(mounts, containerName);
 
   logger.debug(
