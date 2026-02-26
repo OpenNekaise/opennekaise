@@ -22,6 +22,16 @@ describe('JID ownership patterns', () => {
     const jid = '12345678@s.whatsapp.net';
     expect(jid.endsWith('@s.whatsapp.net')).toBe(true);
   });
+
+  it('Slack channel JID: starts with slack:', () => {
+    const jid = 'slack:C0123456789';
+    expect(jid.startsWith('slack:')).toBe(true);
+  });
+
+  it('Slack DM JID: starts with slack:', () => {
+    const jid = 'slack:D0123456789';
+    expect(jid.startsWith('slack:')).toBe(true);
+  });
 });
 
 // --- getAvailableGroups ---
@@ -166,5 +176,59 @@ describe('getAvailableGroups', () => {
   it('returns empty array when no chats exist', () => {
     const groups = getAvailableGroups();
     expect(groups).toHaveLength(0);
+  });
+
+  it('includes Slack channels in available groups', () => {
+    storeChatMetadata(
+      'slack:C0123456789',
+      '2024-01-01T00:00:01.000Z',
+      'Slack Channel',
+      'slack',
+      true,
+    );
+    storeChatMetadata(
+      'user@s.whatsapp.net',
+      '2024-01-01T00:00:02.000Z',
+      'User DM',
+      'whatsapp',
+      false,
+    );
+
+    const groups = getAvailableGroups();
+    expect(groups).toHaveLength(1);
+    expect(groups[0].jid).toBe('slack:C0123456789');
+  });
+
+  it('marks registered Slack channels correctly', () => {
+    storeChatMetadata(
+      'slack:C0123456789',
+      '2024-01-01T00:00:01.000Z',
+      'Slack Registered',
+      'slack',
+      true,
+    );
+    storeChatMetadata(
+      'slack:C9999999999',
+      '2024-01-01T00:00:02.000Z',
+      'Slack Unregistered',
+      'slack',
+      true,
+    );
+
+    _setRegisteredGroups({
+      'slack:C0123456789': {
+        name: 'Slack Registered',
+        folder: 'slack-registered',
+        trigger: '@Nekaise',
+        added_at: '2024-01-01T00:00:00.000Z',
+      },
+    });
+
+    const groups = getAvailableGroups();
+    const registered = groups.find((g) => g.jid === 'slack:C0123456789');
+    const unregistered = groups.find((g) => g.jid === 'slack:C9999999999');
+
+    expect(registered?.isRegistered).toBe(true);
+    expect(unregistered?.isRegistered).toBe(false);
   });
 });
