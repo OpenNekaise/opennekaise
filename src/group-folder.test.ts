@@ -15,6 +15,13 @@ describe('group folder validation', () => {
     expect(isValidGroupFolder('Team_42')).toBe(true);
   });
 
+  it('accepts Unicode folder names', () => {
+    expect(isValidGroupFolder('virkesvägen-17c')).toBe(true);
+    expect(isValidGroupFolder('duvbacken-2')).toBe(true);
+    expect(isValidGroupFolder('göteborg-centrum')).toBe(true);
+    expect(isValidGroupFolder('ångström-lab')).toBe(true);
+  });
+
   it('rejects traversal and reserved names', () => {
     expect(isValidGroupFolder('../../etc')).toBe(false);
     expect(isValidGroupFolder('/tmp')).toBe(false);
