@@ -137,11 +137,19 @@ export async function run(_args: string[]): Promise<void> {
     mountAllowlist = 'configured';
   }
 
+  // Check if running in Slack-only mode (WhatsApp auth not required)
+  const slackOnly =
+    fs.existsSync(path.join(projectRoot, '.env')) &&
+    /^SLACK_ONLY=true/m.test(
+      fs.readFileSync(path.join(projectRoot, '.env'), 'utf-8'),
+    );
+
   // Determine overall status
+  const authOk = slackOnly || whatsappAuth !== 'not_found';
   const status =
     service === 'running' &&
     credentials !== 'missing' &&
-    whatsappAuth !== 'not_found' &&
+    authOk &&
     registeredGroups > 0
       ? 'success'
       : 'failed';

@@ -10,7 +10,7 @@ What if buildings themselves could sense that data, reason about it, and act on 
 
 That's why we started [TwinVista](https://resurseffektivbebyggelse.se/projekt/twinvista/), a large research project at KTH funded by [Energimyndigheten](https://www.energimyndigheten.se/en/).
 
-OpenNekaise is the open-source attribution to the world.
+OpenNekaise is our open-source contribution back to the community.
 
 ## Quick Start
 
@@ -20,7 +20,7 @@ cd opennekaise
 claude
 ```
 
-Then run `/setup`.
+This opens Claude Code. Then run `/setup` inside it.
 
 ## Building Data Design
 
@@ -42,12 +42,12 @@ DM channels (direct messages to the bot) are treated as admin interactions:
 - Get the entire `home/` directory mounted read-write
 - Can read, write, and manage data across all buildings
 
-To make this work, register each building channel with `folder=<building-slug>`. DM channels are registered automatically.
+To make this work, register each building channel with `folder=<building-slug>` during `/setup`. DM channels are auto-registered at startup when a matching `home/<folder>` exists.
 
 ## Core Capabilities
 
 - Slack messaging (default channel)
-- Isolated group contexts and a main admin channel
+- Isolated per-building group contexts with DM channels as admin access
 - Scheduled tasks and outbound notifications
 - Web fetch/research support
 - Docker (macOS/Linux) and Apple Container (macOS)

@@ -112,6 +112,16 @@ function buildVolumeMounts(
           readonly: false,
         });
       }
+      // Mount a dedicated node-home directory over /home/node/ so the SDK
+      // can write its config files without conflicting with building data.
+      // Docker resolves nested mounts correctly: /home/node/ wins over /home/.
+      const nodeHomeDir = path.join(DATA_DIR, 'sessions', group.folder, 'node-home');
+      fs.mkdirSync(nodeHomeDir, { recursive: true });
+      mounts.push({
+        hostPath: nodeHomeDir,
+        containerPath: '/home/node',
+        readonly: false,
+      });
     } else {
       // Building data isolation:
       // each non-main group only gets access to its matching home/<group-folder>.
