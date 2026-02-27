@@ -133,9 +133,38 @@ export function _setRegisteredGroups(
 
 /**
  * Normalize a channel name to a folder slug for matching against home/ directories.
+ * Preserves unicode letters so "virkesvägen-17c" stays "virkesvägen-17c".
  */
 function channelNameToFolder(name: string): string {
   return name.toLowerCase().trim().replace(/\s+/g, '-');
+}
+
+/**
+ * Find the actual home/ directory that corresponds to a channel name.
+ * Tries exact match first, then unicode-normalized fallback scan.
+ * Returns the folder name (relative to HOME_DATA_DIR), or null.
+ */
+function findHomeFolderForChannel(channelName: string): string | null {
+  const slug = channelNameToFolder(channelName);
+  try {
+    const entries = fs.readdirSync(HOME_DATA_DIR, { withFileTypes: true });
+    // Exact match
+    if (entries.some((e) => e.isDirectory() && e.name === slug)) return slug;
+    // Unicode-normalized fallback: ä→ae, ö→oe, ü→ue, å→aa
+    const toAscii = (s: string) =>
+      s
+        .replace(/[äæ]/g, 'ae')
+        .replace(/[öøœ]/g, 'oe')
+        .replace(/[ü]/g, 'ue')
+        .replace(/[å]/g, 'aa')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+    const target = toAscii(slug);
+    const match = entries.find((e) => e.isDirectory() && toAscii(e.name) === target);
+    return match ? match.name : null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -148,23 +177,20 @@ function autoRegisterMatchingChannels(): void {
   const unregistered = availableGroups.filter((g) => !g.isRegistered);
 
   for (const group of unregistered) {
-    const slug = channelNameToFolder(group.name);
-    if (!slug) continue;
+    const folder = findHomeFolderForChannel(group.name);
+    if (!folder) continue;
 
-    const homePath = path.join(HOME_DATA_DIR, slug);
-    if (fs.existsSync(homePath) && fs.statSync(homePath).isDirectory()) {
-      registerGroup(group.jid, {
-        name: group.name,
-        folder: slug,
-        trigger: TRIGGER_PATTERN.source,
-        added_at: new Date().toISOString(),
-        requiresTrigger: false,
-      });
-      logger.info(
-        { jid: group.jid, name: group.name, folder: slug },
-        'Auto-registered channel matching home/ folder',
-      );
-    }
+    registerGroup(group.jid, {
+      name: group.name,
+      folder,
+      trigger: TRIGGER_PATTERN.source,
+      added_at: new Date().toISOString(),
+      requiresTrigger: false,
+    });
+    logger.info(
+      { jid: group.jid, name: group.name, folder },
+      'Auto-registered channel matching home/ folder',
+    );
   }
 }
 

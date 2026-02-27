@@ -166,9 +166,11 @@ function buildVolumeMounts(
     } else {
       // Building data isolation:
       // each non-main group only gets access to its matching home/<group-folder>.
-      // Try exact match first, then fall back to unicode-equivalent folder
-      // (e.g. registered folder "virkesvaegen-17c" matches home dir "virkesvägen-17c").
-      const buildingHostDir = resolveBuildingHostDir(HOME_DATA_DIR, group.folder);
+      // Try registered folder first, then fall back to matching by channel name.
+      // This handles stale registrations where the DB folder doesn't match disk.
+      const buildingHostDir =
+        resolveBuildingHostDir(HOME_DATA_DIR, group.folder) ??
+        resolveBuildingHostDir(HOME_DATA_DIR, group.name.toLowerCase().trim().replace(/\s+/g, '-'));
       if (buildingHostDir) {
         mounts.push({
           hostPath: buildingHostDir,
