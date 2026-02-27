@@ -36,7 +36,13 @@ Isolation rule:
 - Building mounts are read-only
 - The agent for one building channel cannot access other building folders
 
-To make this work, register each building channel with `folder=<building-slug>`.
+DM channels (direct messages to the bot) are treated as admin interactions:
+
+- Auto-registered on startup with no trigger required
+- Get the entire `home/` directory mounted read-write
+- Can read, write, and manage data across all buildings
+
+To make this work, register each building channel with `folder=<building-slug>`. DM channels are registered automatically.
 
 ## Core Capabilities
 
