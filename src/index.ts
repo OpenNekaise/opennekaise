@@ -169,6 +169,34 @@ function autoRegisterMatchingChannels(): void {
 }
 
 /**
+ * Auto-register DM (direct message) channels.
+ * DMs are admin interactions and get full access to all home/ folders.
+ */
+function autoRegisterDmChannels(): void {
+  const chats = getAllChats();
+  const dms = chats.filter((c) => !c.is_group);
+
+  for (const dm of dms) {
+    if (registeredGroups[dm.jid]) continue;
+
+    const sanitized = dm.jid.replace(/[^a-zA-Z0-9-]/g, '-');
+    const folder = `dm-${sanitized}`;
+
+    registerGroup(dm.jid, {
+      name: dm.name || `DM ${dm.jid}`,
+      folder,
+      trigger: TRIGGER_PATTERN.source,
+      added_at: new Date().toISOString(),
+      requiresTrigger: false,
+    });
+    logger.info(
+      { jid: dm.jid, name: dm.name, folder },
+      'Auto-registered DM channel',
+    );
+  }
+}
+
+/**
  * Process all pending messages for a group.
  * Called by the GroupQueue when it's this group's turn.
  */
@@ -293,6 +321,7 @@ async function runAgent(
   onOutput?: (output: ContainerOutput) => Promise<void>,
 ): Promise<'success' | 'error'> {
   const isMain = group.folder === MAIN_GROUP_FOLDER;
+  const isDm = group.folder.startsWith('dm-');
   const sessionId = sessions[group.folder];
 
   // Update tasks snapshot for container to read (filtered by group)
@@ -340,6 +369,7 @@ async function runAgent(
         groupFolder: group.folder,
         chatJid,
         isMain,
+        isDm,
         assistantName: ASSISTANT_NAME,
       },
       (proc, containerName) =>
@@ -379,6 +409,7 @@ async function startMessageLoop(): Promise<void> {
   while (true) {
     try {
       autoRegisterMatchingChannels();
+      autoRegisterDmChannels();
       const jids = Object.keys(registeredGroups);
       const { messages, newTimestamp } = getNewMessages(
         jids,
@@ -574,6 +605,7 @@ async function main(): Promise<void> {
   });
   queue.setProcessMessagesFn(processGroupMessages);
   autoRegisterMatchingChannels();
+  autoRegisterDmChannels();
   recoverPendingMessages();
   startMessageLoop().catch((err) => {
     logger.fatal({ err }, 'Message loop crashed unexpectedly');

@@ -13,6 +13,7 @@ vi.mock('./config.js', () => ({
   CONTAINER_TIMEOUT: 1800000, // 30min
   DATA_DIR: '/tmp/opennekaise-test-data',
   GROUPS_DIR: '/tmp/opennekaise-test-groups',
+  HOME_DATA_DIR: '/tmp/opennekaise-test-home',
   IDLE_TIMEOUT: 1800000, // 30min
   TIMEZONE: 'America/Los_Angeles',
 }));

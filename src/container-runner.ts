@@ -37,6 +37,7 @@ export interface ContainerInput {
   groupFolder: string;
   chatJid: string;
   isMain: boolean;
+  isDm?: boolean;
   isScheduledTask?: boolean;
   assistantName?: string;
   secrets?: Record<string, string>;
@@ -58,6 +59,7 @@ interface VolumeMount {
 function buildVolumeMounts(
   group: RegisteredGroup,
   isMain: boolean,
+  isDm?: boolean,
 ): VolumeMount[] {
   const mounts: VolumeMount[] = [];
   const projectRoot = process.cwd();
@@ -100,20 +102,32 @@ function buildVolumeMounts(
       });
     }
 
-    // Building data isolation:
-    // each non-main group only gets access to its matching home/<group-folder>.
-    const buildingHostDir = path.join(HOME_DATA_DIR, group.folder);
-    if (fs.existsSync(buildingHostDir)) {
-      mounts.push({
-        hostPath: buildingHostDir,
-        containerPath: `/home/${group.folder}`,
-        readonly: true,
-      });
+    if (isDm) {
+      // DM channels are admin interactions — mount entire home/ read-write
+      // so the admin can manage all buildings
+      if (fs.existsSync(HOME_DATA_DIR)) {
+        mounts.push({
+          hostPath: HOME_DATA_DIR,
+          containerPath: '/home',
+          readonly: false,
+        });
+      }
     } else {
-      logger.debug(
-        { group: group.name, expectedPath: buildingHostDir },
-        'No matching building folder under home/, skipping building data mount',
-      );
+      // Building data isolation:
+      // each non-main group only gets access to its matching home/<group-folder>.
+      const buildingHostDir = path.join(HOME_DATA_DIR, group.folder);
+      if (fs.existsSync(buildingHostDir)) {
+        mounts.push({
+          hostPath: buildingHostDir,
+          containerPath: `/home/${group.folder}`,
+          readonly: true,
+        });
+      } else {
+        logger.debug(
+          { group: group.name, expectedPath: buildingHostDir },
+          'No matching building folder under home/, skipping building data mount',
+        );
+      }
     }
   }
 
@@ -267,7 +281,7 @@ export async function runContainerAgent(
   const groupDir = resolveGroupFolderPath(group.folder);
   fs.mkdirSync(groupDir, { recursive: true });
 
-  const mounts = buildVolumeMounts(group, input.isMain);
+  const mounts = buildVolumeMounts(group, input.isMain, input.isDm);
   const safeName = group.folder.replace(/[^a-zA-Z0-9-]/g, '-');
   const containerName = `opennekaise-${safeName}-${Date.now()}`;
   const containerArgs = buildContainerArgs(mounts, containerName);
