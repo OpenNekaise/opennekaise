@@ -3,6 +3,7 @@ import path from 'path';
 
 import {
   ASSISTANT_NAME,
+  HOME_DATA_DIR,
   IDLE_TIMEOUT,
   MAIN_GROUP_FOLDER,
   POLL_INTERVAL,
@@ -128,6 +129,43 @@ export function _setRegisteredGroups(
   groups: Record<string, RegisteredGroup>,
 ): void {
   registeredGroups = groups;
+}
+
+/**
+ * Normalize a channel name to a folder slug for matching against home/ directories.
+ */
+function channelNameToFolder(name: string): string {
+  return name.toLowerCase().trim().replace(/\s+/g, '-');
+}
+
+/**
+ * Auto-register channels that match a home/ folder by name.
+ * Checks unregistered group channels and registers them if a matching
+ * directory exists under home/, enabling zero-config building setup.
+ */
+function autoRegisterMatchingChannels(): void {
+  const availableGroups = getAvailableGroups();
+  const unregistered = availableGroups.filter((g) => !g.isRegistered);
+
+  for (const group of unregistered) {
+    const slug = channelNameToFolder(group.name);
+    if (!slug) continue;
+
+    const homePath = path.join(HOME_DATA_DIR, slug);
+    if (fs.existsSync(homePath) && fs.statSync(homePath).isDirectory()) {
+      registerGroup(group.jid, {
+        name: group.name,
+        folder: slug,
+        trigger: TRIGGER_PATTERN.source,
+        added_at: new Date().toISOString(),
+        requiresTrigger: false,
+      });
+      logger.info(
+        { jid: group.jid, name: group.name, folder: slug },
+        'Auto-registered channel matching home/ folder',
+      );
+    }
+  }
 }
 
 /**
@@ -340,6 +378,7 @@ async function startMessageLoop(): Promise<void> {
 
   while (true) {
     try {
+      autoRegisterMatchingChannels();
       const jids = Object.keys(registeredGroups);
       const { messages, newTimestamp } = getNewMessages(
         jids,
@@ -534,6 +573,7 @@ async function main(): Promise<void> {
       writeGroupsSnapshot(gf, im, ag, rj),
   });
   queue.setProcessMessagesFn(processGroupMessages);
+  autoRegisterMatchingChannels();
   recoverPendingMessages();
   startMessageLoop().catch((err) => {
     logger.fatal({ err }, 'Message loop crashed unexpectedly');
