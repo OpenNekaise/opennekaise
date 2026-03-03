@@ -1,123 +1,87 @@
-# OpenNekaise Security Model
+# Security Model
 
-## Trust Model
+OpenNekaise runs AI agents inside containers. The core security idea is simple: **agents can only see and touch what we explicitly give them**.
 
-| Entity | Trust Level | Rationale |
-|--------|-------------|-----------|
-| Main group | Trusted | Private self-chat, admin control |
-| Non-main groups | Untrusted | Other users may be malicious |
-| Container agents | Sandboxed | Isolated execution environment |
-| WhatsApp messages | User input | Potential prompt injection |
+## Who Do We Trust?
 
-## Security Boundaries
+| Who | Trust Level | Why |
+|-----|-------------|-----|
+| Admin (main group / DM) | Trusted | You control it |
+| Building channels | Untrusted | Other users could send malicious messages |
+| Container agents | Sandboxed | They run in isolation, can't escape |
+| Incoming messages | User input | Could contain prompt injection |
 
-### 1. Container Isolation (Primary Boundary)
+## How Agents Are Isolated
 
-Agents execute in containers (lightweight Linux VMs), providing:
-- **Process isolation** - Container processes cannot affect the host
-- **Filesystem isolation** - Only explicitly mounted directories are visible
-- **Non-root execution** - Runs as unprivileged `node` user (uid 1000)
-- **Ephemeral containers** - Fresh environment per invocation (`--rm`)
+Every agent runs in a fresh container that is destroyed after each invocation. Inside the container:
 
-This is the primary security boundary. Rather than relying on application-level permission checks, the attack surface is limited by what's mounted.
+- The agent runs as a non-root user
+- It can only see files we explicitly mount — nothing else on the host
+- It cannot modify the host application code (project root is read-only)
+- Each building group gets its own session data, invisible to other groups
 
-### 2. Mount Security
+**This is the main security boundary.** We don't rely on the agent "behaving well" — we limit what it can access in the first place.
 
-**External Allowlist** - Mount permissions stored at `~/.config/opennekaise/mount-allowlist.json`, which is:
-- Outside project root
-- Never mounted into containers
-- Cannot be modified by agents
+## What Gets Mounted (and What Doesn't)
 
-**Default Blocked Patterns:**
-```
-.ssh, .gnupg, .aws, .azure, .gcloud, .kube, .docker,
-credentials, .env, .netrc, .npmrc, id_rsa, id_ed25519,
-private_key, .secret
-```
+**Mounted into containers:**
+- The group's own building folder (read-write)
+- Global memory file (read-only for non-main groups)
+- IPC directory (for sending messages back)
+- Claude auth tokens (so the agent can authenticate)
 
-**Protections:**
-- Symlink resolution before validation (prevents traversal attacks)
-- Container path validation (rejects `..` and absolute paths)
-- `nonMainReadOnly` option forces read-only for non-main groups
+**Never mounted:**
+- Other groups' data
+- SSH keys, AWS/Azure/GCP credentials, `.env` files, private keys
+- The mount allowlist config itself
+- Chat session auth tokens
 
-**Read-Only Project Root:**
+### Additional Mounts
 
-The main group's project root is mounted read-only. Writable paths the agent needs (group folder, IPC, `.claude/`) are mounted separately. This prevents the agent from modifying host application code (`src/`, `dist/`, `package.json`, etc.) which would bypass the sandbox entirely on next restart.
+If you need to give agents access to extra directories, you configure an allowlist at `~/.config/opennekaise/mount-allowlist.json`. This file lives outside the project so agents can never modify it.
 
-### 3. Session Isolation
+The allowlist lets you:
+- Define which host directories are allowed
+- Block sensitive path patterns (`.ssh`, `credentials`, etc. are blocked by default)
+- Force non-main groups to read-only access
 
-Each group has isolated Claude sessions at `data/sessions/{group}/.claude/`:
-- Groups cannot see other groups' conversation history
-- Session data includes full message history and file contents read
-- Prevents cross-group information disclosure
+Symlinks are resolved before validation to prevent path traversal.
 
-### 4. IPC Authorization
+## What Admin vs Building Agents Can Do
 
-Messages and task operations are verified against group identity:
+| Action | Admin | Building Agent |
+|--------|-------|----------------|
+| Send message to own chat | Yes | Yes |
+| Send message to other chats | Yes | No |
+| Schedule tasks for self | Yes | Yes |
+| Schedule tasks for others | Yes | No |
+| See all tasks | Yes | Own only |
+| Access project root | Read-only | No |
 
-| Operation | Main Group | Non-Main Group |
-|-----------|------------|----------------|
-| Send message to own chat | ✓ | ✓ |
-| Send message to other chats | ✓ | ✗ |
-| Schedule task for self | ✓ | ✓ |
-| Schedule task for others | ✓ | ✗ |
-| View all tasks | ✓ | Own only |
-| Manage other groups | ✓ | ✗ |
+## Known Limitation
 
-### 5. Credential Handling
+Claude auth tokens are mounted so the agent can call the Claude API. This means the agent could theoretically read these credentials. Ideally the SDK would handle auth without exposing tokens to the execution environment. If you have ideas for solving this, PRs are welcome.
 
-**Mounted Credentials:**
-- Claude auth tokens (filtered from `.env`, read-only)
-
-**NOT Mounted:**
-- WhatsApp session (`store/auth/`) - host only
-- Mount allowlist - external, never mounted
-- Any credentials matching blocked patterns
-
-**Credential Filtering:**
-Only these environment variables are exposed to containers:
-```typescript
-const allowedVars = ['CLAUDE_CODE_OAUTH_TOKEN', 'ANTHROPIC_API_KEY'];
-```
-
-> **Note:** Anthropic credentials are mounted so that Claude Code can authenticate when the agent runs. However, this means the agent itself can discover these credentials via Bash or file operations. Ideally, Claude Code would authenticate without exposing credentials to the agent's execution environment, but I couldn't figure this out. **PRs welcome** if you have ideas for credential isolation.
-
-## Privilege Comparison
-
-| Capability | Main Group | Non-Main Group |
-|------------|------------|----------------|
-| Project root access | `/workspace/project` (ro) | None |
-| Group folder | `/workspace/group` (rw) | `/workspace/group` (rw) |
-| Global memory | Implicit via project | `/workspace/global` (ro) |
-| Additional mounts | Configurable | Read-only unless allowed |
-| Network access | Unrestricted | Unrestricted |
-| MCP tools | All | All |
-
-## Security Architecture Diagram
+## Architecture Overview
 
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│                        UNTRUSTED ZONE                             │
-│  WhatsApp Messages (potentially malicious)                        │
-└────────────────────────────────┬─────────────────────────────────┘
-                                 │
-                                 ▼ Trigger check, input escaping
-┌──────────────────────────────────────────────────────────────────┐
-│                     HOST PROCESS (TRUSTED)                        │
-│  • Message routing                                                │
-│  • IPC authorization                                              │
-│  • Mount validation (external allowlist)                          │
-│  • Container lifecycle                                            │
-│  • Credential filtering                                           │
-└────────────────────────────────┬─────────────────────────────────┘
-                                 │
-                                 ▼ Explicit mounts only
-┌──────────────────────────────────────────────────────────────────┐
-│                CONTAINER (ISOLATED/SANDBOXED)                     │
-│  • Agent execution                                                │
-│  • Bash commands (sandboxed)                                      │
-│  • File operations (limited to mounts)                            │
-│  • Network access (unrestricted)                                  │
-│  • Cannot modify security config                                  │
-└──────────────────────────────────────────────────────────────────┘
+  Incoming messages (untrusted)
+          │
+          ▼
+  ┌─────────────────────────┐
+  │     Host Process         │  Trusted: routes messages,
+  │                          │  validates mounts, manages
+  │  • Message routing       │  containers, filters credentials
+  │  • Mount validation      │
+  │  • Container lifecycle   │
+  └──────────┬──────────────┘
+             │ only explicit mounts
+             ▼
+  ┌─────────────────────────┐
+  │     Container            │  Sandboxed: runs agent,
+  │                          │  can only access mounted
+  │  • Agent execution       │  files, destroyed after use
+  │  • File ops (mounts only)│
+  │  • Network access        │
+  └─────────────────────────┘
 ```

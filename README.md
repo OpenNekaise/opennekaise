@@ -14,7 +14,7 @@ OpenNekaise is our open-source contribution back to the community.
 
 ## Nekaise Agent Philosophy
 
-OpenNekaise creates AI agents that are grounded in ontology — structured, formal representations of building knowledge.
+OpenNekaise creates AI agents that are grounded in ontology — structured, formal representations of building data, information, and knowledge.
 
 Most LLM-based agents operate on raw text and loose context. Our research at KTH shows that when you ground an agent in an ontology — defining what a building *is*, how its systems relate, and what its data *means* — the agent reasons more reliably and makes fewer hallucinated leaps.
 
@@ -101,9 +101,7 @@ Key files:
 
 ## Upstream Credit
 
-OpenNekaise builds on [NanoClaw](https://github.com/qwibitai/nanoclaw). Thanks to the NanoClaw maintainers and contributors for the lightweight foundation this project extends.
-
-It is hard to say no to [pure Claude Agent SDK-based AI agents](https://platform.claude.com/docs/en/agent-sdk/overview).
+OpenNekaise builds on [NanoClaw](https://github.com/qwibitai/nanoclaw). Thanks to the NanoClaw maintainers and contributors for the lightweight foundation this project extends. It is hard to say no to [pure Claude Agent SDK-based AI agents](https://platform.claude.com/docs/en/agent-sdk/overview).
 
 We also thank [OpenClaw](https://github.com/openclaw/openclaw) and its contributors for opening a new way of thinking and working with LLMs.
 
