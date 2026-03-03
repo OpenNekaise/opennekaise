@@ -12,6 +12,20 @@ That's why we started [TwinVista](https://resurseffektivbebyggelse.se/projekt/tw
 
 OpenNekaise is our open-source contribution back to the community.
 
+## Nekaise Agent Philosophy
+
+OpenNekaise creates AI agents that are grounded in ontology — structured, formal representations of building knowledge.
+
+Most LLM-based agents operate on raw text and loose context. Our research at KTH shows that when you ground an agent in an ontology — defining what a building *is*, how its systems relate, and what its data *means* — the agent reasons more reliably and makes fewer hallucinated leaps.
+
+In practice this means:
+
+- Building data is organized by domain concepts (spaces, systems, sensors, schedules), not arbitrary file structures
+- The agent understands relationships between building components, not just isolated data points
+- Responses are traceable back to structured knowledge, not just pattern-matched from training data
+
+This is an active area of research. As our ontology work matures, OpenNekaise will evolve to reflect it.
+
 ## Quick Start
 
 ```bash
