@@ -85,8 +85,6 @@ To make building mapping work, register each building channel with `folder=<buil
 
 ## Memory
 
-An AI agent without memory is just a chatbot. It answers questions, forgets everything, and starts from zero next time. That is not useful for buildings — where every conversation adds a piece to a long, evolving picture of how a building actually works.
-
 Memory is what turns Nekaise Agent from a tool you query into a colleague who knows your building. It accumulates corrections, remembers what was decided and why, and learns how you prefer to communicate. Over weeks and months, the agent becomes more useful — not because the model improved, but because the memory grew.
 
 ### How it works
