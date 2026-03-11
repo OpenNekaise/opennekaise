@@ -18,7 +18,6 @@ import {
   ContainerOutput,
   runContainerAgent,
   writeGroupsSnapshot,
-  writeMessagesHistory,
   writeTasksSnapshot,
 } from './container-runner.js';
 import {
@@ -32,7 +31,6 @@ import {
   getAllTasks,
   getMessagesSince,
   getNewMessages,
-  getRecentConversation,
   getRouterState,
   initDatabase,
   deleteRegisteredGroup,
@@ -414,11 +412,6 @@ async function runAgent(
   const isMain = group.folder === MAIN_GROUP_FOLDER;
   const isDm = group.folder.startsWith('dm-');
   const sessionId = sessions[group.folder];
-
-  // Write recent conversation history to IPC so the update-memory skill
-  // can process it into structured memory. Available every run.
-  const history = getRecentConversation(chatJid, 100);
-  writeMessagesHistory(group.folder, history);
 
   // Update tasks snapshot for container to read (filtered by group)
   const tasks = getAllTasks();

@@ -11,30 +11,25 @@ Distill raw conversation messages into structured memory that persists across se
 
 ## Steps
 
-1. Read the raw messages history:
-   ```bash
-   cat /workspace/ipc/messages_history.json
-   ```
-
-2. Read existing memory (if any):
+1. Read existing memory (if any):
    ```bash
    cat /workspace/group/memory.md 2>/dev/null || echo "No existing memory."
    ```
 
-3. Process the messages. Extract only:
+2. Review the conversation that just happened (it is already in your context). Extract only:
    - **Building facts**: sensor values, equipment specs, configurations discovered
    - **Decisions made**: what was agreed, what was rejected, and why
    - **User preferences**: how they want information presented, what they care about
    - **Open issues**: unresolved problems, pending investigations
    - **Corrections**: things you got wrong and the verified correct answer
 
-4. Merge with existing memory:
+3. Merge with existing memory:
    - Update entries that have new information
    - Remove entries that are no longer relevant
    - Do not duplicate what already exists
    - Keep the file concise — under 200 lines
 
-5. Write the updated memory:
+4. Write the updated memory:
    ```bash
    cat > /workspace/group/memory.md << 'MEMORY_EOF'
    # Memory
