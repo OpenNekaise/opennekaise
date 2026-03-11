@@ -34,7 +34,9 @@ cd opennekaise
 claude
 ```
 
-This opens Claude Code. Then run `/setup` inside it.
+This opens [Claude Code](https://claude.ai/code). Run `/setup` and it will walk you through everything.
+
+After setup, you don't need to read further — just ask Claude Code any question about your deployment, configuration, or building data. It already knows the codebase.
 
 ## Building Data Design
 
