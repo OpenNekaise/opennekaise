@@ -31,6 +31,7 @@ import {
   getAllTasks,
   getMessagesSince,
   getNewMessages,
+  getRecentConversation,
   getRouterState,
   initDatabase,
   deleteRegisteredGroup,
@@ -402,6 +403,24 @@ async function runAgent(
   const isMain = group.folder === MAIN_GROUP_FOLDER;
   const isDm = group.folder.startsWith('dm-');
   const sessionId = sessions[group.folder];
+
+  // When starting a fresh session, inject recent conversation history
+  // so the agent doesn't lose context from previous sessions.
+  if (!sessionId) {
+    const history = getRecentConversation(chatJid, 50);
+    if (history.length > 0) {
+      const historyLines = history.map(
+        (m) =>
+          `<message sender="${m.sender_name}" time="${m.timestamp}">${m.content}</message>`,
+      );
+      const historyBlock = `<conversation-history note="Previous conversation for context. Do not re-answer old messages — only respond to the new messages below.">\n${historyLines.join('\n')}\n</conversation-history>\n\n`;
+      prompt = historyBlock + prompt;
+      logger.info(
+        { group: group.name, historyCount: history.length },
+        'Injected conversation history into new session',
+      );
+    }
+  }
 
   // Update tasks snapshot for container to read (filtered by group)
   const tasks = getAllTasks();

@@ -488,6 +488,28 @@ export function setRouterState(key: string, value: string): void {
   ).run(key, value);
 }
 
+/**
+ * Fetch recent conversation messages for a chat, INCLUDING bot responses.
+ * Used to inject context when starting a fresh session so the agent
+ * doesn't lose conversational history.
+ */
+export function getRecentConversation(
+  chatJid: string,
+  limit: number = 50,
+): NewMessage[] {
+  const sql = `
+    SELECT id, chat_jid, sender, sender_name, content, timestamp
+    FROM messages
+    WHERE chat_jid = ?
+      AND content != '' AND content IS NOT NULL
+    ORDER BY timestamp DESC
+    LIMIT ?
+  `;
+  const rows = db.prepare(sql).all(chatJid, limit) as NewMessage[];
+  // Reverse so oldest-first (chronological order)
+  return rows.reverse();
+}
+
 // --- Session accessors ---
 
 export function getSession(groupFolder: string): string | undefined {
@@ -512,6 +534,14 @@ export function getAllSessions(): Record<string, string> {
     result[row.group_folder] = row.session_id;
   }
   return result;
+}
+
+export function clearSession(groupFolder: string): void {
+  db.prepare('DELETE FROM sessions WHERE group_folder = ?').run(groupFolder);
+}
+
+export function clearAllSessions(): void {
+  db.prepare('DELETE FROM sessions').run();
 }
 
 // --- Registered group accessors ---
