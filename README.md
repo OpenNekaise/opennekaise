@@ -38,7 +38,7 @@ This opens [Claude Code](https://claude.ai/code). Run `/setup` and it will walk 
 
 After setup, you don't need to read further — just ask Claude Code any question about your deployment, configuration, or building data. It already knows the codebase.
 
-## Sandbox, Sandbox, Sandbox
+## Sandbox, sandbox, sandbox
 
 Every agent invocation runs inside an ephemeral Docker container that is destroyed on exit. Nothing persists except what we explicitly mount in.
 
@@ -59,31 +59,7 @@ The agent **cannot** see other buildings, other groups' working directories, or 
 
 **Agent-runner source is recompiled at container startup** from a per-group copy that is re-synced from the canonical source on every run. No stale code survives across deployments.
 
-## Building Data Design
-
-OpenNekaise expects building data under the project `home/` directory:
-
-- One folder per building, using the building slug as folder name (example: `home/rio-10/`)
-- User data in `home/` is local by design and not tracked by git
-- Only `home/.gitkeep` is versioned to keep directory structure
-
-Isolation rule:
-
-- Each non-main registered group gets only its matching building folder mounted in the container as `/home/<group-folder>`
-- Building mounts are read-only
-- The agent for one building channel cannot access other building folders
-
-DM channels (direct messages to the bot) are blocked by default and must be explicitly configured:
-
-- Set `ADMIN_DM_JID=<your-dm-jid>` in `.env` (example: `slack:D0123456789`)
-- Set `ALLOWED_DM_JIDS=<jid1>,<jid2>` to allow specific DM channels
-- Only allowed DMs can be registered/processed
-- Allowed DMs are restricted to `main` context (legacy `dm-*` folders are rejected)
-- The admin DM follows `main` context/mount behavior
-
-To make building mapping work, register each building channel with `folder=<building-slug>` during `/setup`.
-
-## Memory
+## Memory, memory, memory
 
 Memory is what turns Nekaise Agent from a tool you query into a colleague who knows your building. It accumulates corrections, remembers what was decided and why, and learns how you prefer to communicate. Over weeks and months, the agent becomes more useful — not because the model improved, but because the memory grew.
 
@@ -117,6 +93,30 @@ sqlite3 store/messages.db "DELETE FROM sessions;"
 systemctl --user restart opennekaise
 # Memory is untouched.
 ```
+
+## Building Data Design
+
+OpenNekaise expects building data under the project `home/` directory:
+
+- One folder per building, using the building slug as folder name (example: `home/rio-10/`)
+- User data in `home/` is local by design and not tracked by git
+- Only `home/.gitkeep` is versioned to keep directory structure
+
+Isolation rule:
+
+- Each non-main registered group gets only its matching building folder mounted in the container as `/home/<group-folder>`
+- Building mounts are read-only
+- The agent for one building channel cannot access other building folders
+
+DM channels (direct messages to the bot) are blocked by default and must be explicitly configured:
+
+- Set `ADMIN_DM_JID=<your-dm-jid>` in `.env` (example: `slack:D0123456789`)
+- Set `ALLOWED_DM_JIDS=<jid1>,<jid2>` to allow specific DM channels
+- Only allowed DMs can be registered/processed
+- Allowed DMs are restricted to `main` context (legacy `dm-*` folders are rejected)
+- The admin DM follows `main` context/mount behavior
+
+To make building mapping work, register each building channel with `folder=<building-slug>` during `/setup`.
 
 ## Core Capabilities
 
