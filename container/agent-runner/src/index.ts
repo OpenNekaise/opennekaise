@@ -443,9 +443,9 @@ async function runQuery(
           command: 'node',
           args: [mcpServerPath],
           env: {
-            NANOCLAW_CHAT_JID: containerInput.chatJid,
-            NANOCLAW_GROUP_FOLDER: containerInput.groupFolder,
-            NANOCLAW_IS_MAIN: containerInput.isMain ? '1' : '0',
+            OPENNEKAISE_CHAT_JID: containerInput.chatJid,
+            OPENNEKAISE_GROUP_FOLDER: containerInput.groupFolder,
+            OPENNEKAISE_IS_MAIN: containerInput.isMain ? '1' : '0',
           },
         },
       },

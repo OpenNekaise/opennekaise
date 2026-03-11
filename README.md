@@ -75,6 +75,27 @@ Each agent container receives context from up to two CLAUDE.md files depending o
 
 **`groups/main/CLAUDE.md`** — admin context. Used only by DM/admin channels. Does not receive the global context.
 
+### Sessions and Conversation History
+
+Each group maintains a Claude Code session so the agent remembers prior exchanges. Sessions are stored in the `sessions` table in SQLite.
+
+When a session is cleared (or on first contact), the orchestrator injects the last 50 messages from the database as a `<conversation-history>` block so the agent doesn't lose context. This means:
+
+- **System prompt updates take effect** by clearing sessions — no conversation history is lost
+- **New groups** get context from any messages that arrived before the agent was registered
+- The agent is instructed to treat injected history as read-only context and only respond to new messages
+
+To clear sessions (e.g. after updating a system prompt):
+
+```bash
+sqlite3 store/messages.db "DELETE FROM sessions;"
+systemctl --user restart opennekaise
+```
+
+### Agent-Runner Source Sync
+
+The agent-runner TypeScript source is copied into each group's session directory and compiled at container startup. The source is re-synced from `container/agent-runner/src/` on every container run, so code changes propagate automatically without manual cleanup.
+
 ## Core Capabilities
 
 - Slack messaging (default channel)
