@@ -118,18 +118,15 @@ systemctl --user restart opennekaise
 # Memory is untouched.
 ```
 
-### Agent-Runner Source Sync
-
-The agent-runner TypeScript source is copied into each group's session directory and compiled at container startup. The source is re-synced from `container/agent-runner/src/` on every container run, so code changes propagate automatically without manual cleanup.
-
 ## Core Capabilities
 
-- Slack messaging (default channel)
-- Isolated per-building group contexts with DM channels as admin access
-- Scheduled tasks and outbound notifications
-- Web fetch/research support
-- Docker (macOS/Linux) and Apple Container (macOS)
-- Skill-based extensions for channels/integrations
+- Slack and WhatsApp messaging channels
+- Per-building container isolation with read-only building data mounts
+- Incremental structured memory that grows with every conversation
+- Scheduled tasks (cron, interval, one-off) with cross-group orchestration
+- Web browsing and research via agent-browser skill
+- Docker container runtime (macOS/Linux)
+- Extensible via custom skills (`container/skills/`)
 
 ## Architecture (Essential)
 
