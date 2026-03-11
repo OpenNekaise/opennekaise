@@ -10,7 +10,7 @@ What if buildings themselves could sense that data, reason about it, and act on 
 
 That's why we started [TwinVista](https://resurseffektivbebyggelse.se/projekt/twinvista/), a large research project at KTH funded by [Energimyndigheten](https://www.energimyndigheten.se/en/).
 
-OpenNekaise is our open-source contribution back to the community.
+[OpenNekaise](https://opennekaise.com/) is our open-source contribution back to the community.
 
 ## Nekaise Agent Philosophy
 
