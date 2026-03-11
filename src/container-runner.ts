@@ -707,6 +707,25 @@ export async function runContainerAgent(
   });
 }
 
+/**
+ * Write recent conversation messages to IPC so the agent can process
+ * them into structured memory via the update-memory skill.
+ */
+export function writeMessagesHistory(
+  groupFolder: string,
+  messages: Array<{
+    sender_name: string;
+    content: string;
+    timestamp: string;
+    is_from_me?: boolean;
+  }>,
+): void {
+  const groupIpcDir = resolveGroupIpcPath(groupFolder);
+  fs.mkdirSync(groupIpcDir, { recursive: true });
+  const historyFile = path.join(groupIpcDir, 'messages_history.json');
+  fs.writeFileSync(historyFile, JSON.stringify(messages, null, 2));
+}
+
 export function writeTasksSnapshot(
   groupFolder: string,
   isMain: boolean,

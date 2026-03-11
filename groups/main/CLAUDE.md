@@ -102,6 +102,12 @@ Folder rules:
 - If mapping is ambiguous, ask before registering.
 - For destructive changes (unregister/re-map), restate impact before action.
 
+## Memory
+
+You have a persistent memory file at `/workspace/group/memory.md`. It contains structured facts, decisions, and preferences distilled from past conversations. Read it at the start of each conversation for context.
+
+The `/update-memory` skill processes raw messages into this file. It runs automatically after each conversation.
+
 ## After Corrections
 
 - Acknowledge the mistake in one sentence. Give the corrected answer.

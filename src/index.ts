@@ -18,6 +18,7 @@ import {
   ContainerOutput,
   runContainerAgent,
   writeGroupsSnapshot,
+  writeMessagesHistory,
   writeTasksSnapshot,
 } from './container-runner.js';
 import {
@@ -340,6 +341,7 @@ async function processGroupMessages(chatJid: string): Promise<boolean> {
   await channel.setTyping?.(chatJid, true);
   let hadError = false;
   let outputSentToUser = false;
+  let memoryUpdateTriggered = false;
 
   const output = await runAgent(group, prompt, chatJid, async (result) => {
     // Streaming output callback — called for each agent result
@@ -357,6 +359,15 @@ async function processGroupMessages(chatJid: string): Promise<boolean> {
       }
       // Only reset idle timer on actual results, not session-update markers (result: null)
       resetIdleTimer();
+
+      // Trigger memory update once after the first user-facing response
+      if (outputSentToUser && !memoryUpdateTriggered) {
+        memoryUpdateTriggered = true;
+        queue.sendMessage(
+          chatJid,
+          '[SYSTEM] Conversation turn complete. Run /update-memory to process the recent messages into memory.',
+        );
+      }
     }
 
     if (result.status === 'success') {
@@ -404,23 +415,10 @@ async function runAgent(
   const isDm = group.folder.startsWith('dm-');
   const sessionId = sessions[group.folder];
 
-  // When starting a fresh session, inject recent conversation history
-  // so the agent doesn't lose context from previous sessions.
-  if (!sessionId) {
-    const history = getRecentConversation(chatJid, 50);
-    if (history.length > 0) {
-      const historyLines = history.map(
-        (m) =>
-          `<message sender="${m.sender_name}" time="${m.timestamp}">${m.content}</message>`,
-      );
-      const historyBlock = `<conversation-history note="Previous conversation for context. Do not re-answer old messages — only respond to the new messages below.">\n${historyLines.join('\n')}\n</conversation-history>\n\n`;
-      prompt = historyBlock + prompt;
-      logger.info(
-        { group: group.name, historyCount: history.length },
-        'Injected conversation history into new session',
-      );
-    }
-  }
+  // Write recent conversation history to IPC so the update-memory skill
+  // can process it into structured memory. Available every run.
+  const history = getRecentConversation(chatJid, 100);
+  writeMessagesHistory(group.folder, history);
 
   // Update tasks snapshot for container to read (filtered by group)
   const tasks = getAllTasks();
