@@ -83,44 +83,42 @@ DM channels (direct messages to the bot) are blocked by default and must be expl
 
 To make building mapping work, register each building channel with `folder=<building-slug>` during `/setup`.
 
-## Agent Memory and Context
+## Memory
 
-Each agent container receives context from up to two CLAUDE.md files depending on channel type:
+An AI agent without memory is just a chatbot. It answers questions, forgets everything, and starts from zero next time. That is not useful for buildings — where every conversation adds a piece to a long, evolving picture of how a building actually works.
 
-| Channel type | Context sources |
-|---|---|
-| Building channel (non-DM) | `groups/global/CLAUDE.md` + `groups/<folder>/CLAUDE.md` |
-| DM / admin | `groups/main/CLAUDE.md` only |
+Memory is what turns Nekaise Agent from a tool you query into a colleague who knows your building. It accumulates corrections, remembers what was decided and why, and learns how you prefer to communicate. Over weeks and months, the agent becomes more useful — not because the model improved, but because the memory grew.
 
-**`groups/global/CLAUDE.md`** — shared baseline for all building agents. Put things that apply to every building here: sensor conventions, reporting formats, domain knowledge. Loaded by the agent runner and appended to the system prompt.
+### How it works
 
-**`groups/<folder>/CLAUDE.md`** — per-building memory. Not created at registration — it starts empty and grows as the agent accumulates building-specific knowledge. Loaded automatically by the Claude Code SDK because it is the container working directory. The agent can write to it directly.
+Each group has a `memory.md` file (`groups/<folder>/memory.md`) that stores distilled facts, decisions, user preferences, and open issues — never raw messages. The agent reads it at the start of every conversation.
 
-**`groups/main/CLAUDE.md`** — admin context. Used only by DM/admin channels. Does not receive the global context.
+Memory is updated incrementally:
 
-### Structured Memory
+- **After each conversation**: the orchestrator auto-triggers the `/update-memory` skill. The agent reflects on what just happened and writes what matters to `memory.md`.
+- **Daily refinement (2am)**: a scheduled sweep reads the day's messages alongside existing memory and produces a cleaner, consolidated version. Auto-created for every group.
 
-Each group has a `memory.md` file (`groups/<folder>/memory.md`) that stores distilled facts, decisions, user preferences, and open issues — not raw messages. The agent reads it at the start of each conversation for context.
+The LLM decides what is worth keeping. The skill (`container/skills/update-memory/SKILL.md`) gives it structure and rules — be ruthless, prefer specific values over vague summaries, never store raw text.
 
-Memory is updated two ways:
+### Context layers
 
-- **After each conversation**: the orchestrator auto-triggers the `/update-memory` skill via IPC. The agent processes the conversation already in its context and writes to `memory.md`. Output is silent.
-- **Daily sweep (2am)**: a scheduled task reads the last 100 messages from the database and the existing `memory.md`, then outputs a refined version. This task is auto-created for every group on registration.
-
-The `/update-memory` skill (`container/skills/update-memory/SKILL.md`) tells the agent what to extract and how to structure memory. The LLM decides what is worth keeping.
+| Layer | File | Purpose |
+|---|---|---|
+| System prompt | `groups/global/CLAUDE.md` | Shared rules for all building agents |
+| Admin prompt | `groups/main/CLAUDE.md` | Admin-only context and tools |
+| Per-building prompt | `groups/<folder>/CLAUDE.md` | Building-specific instructions |
+| Memory | `groups/<folder>/memory.md` | Accumulated knowledge from conversations |
 
 ### Sessions
 
-Each group maintains a Claude Code session so the agent remembers prior exchanges within a session. Sessions are stored in the `sessions` table in SQLite.
-
-To clear sessions (e.g. after updating a system prompt):
+Each group maintains a Claude Code session for short-term conversational continuity. Memory is the long-term layer — it survives session clears, restarts, and prompt updates.
 
 ```bash
+# Clear sessions (e.g. after updating a system prompt):
 sqlite3 store/messages.db "DELETE FROM sessions;"
 systemctl --user restart opennekaise
+# Memory is untouched.
 ```
-
-Memory survives session clears — it lives in `memory.md`, not in the session.
 
 ### Agent-Runner Source Sync
 
