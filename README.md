@@ -98,15 +98,20 @@ Each agent container receives context from up to two CLAUDE.md files depending o
 
 **`groups/main/CLAUDE.md`** — admin context. Used only by DM/admin channels. Does not receive the global context.
 
-### Sessions and Conversation History
+### Structured Memory
 
-Each group maintains a Claude Code session so the agent remembers prior exchanges. Sessions are stored in the `sessions` table in SQLite.
+Each group has a `memory.md` file (`groups/<folder>/memory.md`) that stores distilled facts, decisions, user preferences, and open issues — not raw messages. The agent reads it at the start of each conversation for context.
 
-When a session is cleared (or on first contact), the orchestrator injects the last 50 messages from the database as a `<conversation-history>` block so the agent doesn't lose context. This means:
+Memory is updated two ways:
 
-- **System prompt updates take effect** by clearing sessions — no conversation history is lost
-- **New groups** get context from any messages that arrived before the agent was registered
-- The agent is instructed to treat injected history as read-only context and only respond to new messages
+- **After each conversation**: the orchestrator auto-triggers the `/update-memory` skill via IPC. The agent processes the conversation already in its context and writes to `memory.md`. Output is silent.
+- **Daily sweep (2am)**: a scheduled task reads the last 100 messages from the database and the existing `memory.md`, then outputs a refined version. This task is auto-created for every group on registration.
+
+The `/update-memory` skill (`container/skills/update-memory/SKILL.md`) tells the agent what to extract and how to structure memory. The LLM decides what is worth keeping.
+
+### Sessions
+
+Each group maintains a Claude Code session so the agent remembers prior exchanges within a session. Sessions are stored in the `sessions` table in SQLite.
 
 To clear sessions (e.g. after updating a system prompt):
 
@@ -114,6 +119,8 @@ To clear sessions (e.g. after updating a system prompt):
 sqlite3 store/messages.db "DELETE FROM sessions;"
 systemctl --user restart opennekaise
 ```
+
+Memory survives session clears — it lives in `memory.md`, not in the session.
 
 ### Agent-Runner Source Sync
 
