@@ -143,6 +143,10 @@ Key files:
 - `src/task-scheduler.ts` - recurring tasks
 - `src/db.ts` - persistent state and message storage
 
+Skills live in two places for two audiences:
+- `.claude/skills/` — for you, the developer running Claude Code on the host (`/setup`, `/debug`, `/customize`, etc.)
+- `container/skills/` — for the agent inside containers (`agent-browser`, `update-memory`). Synced into each group's container on every run.
+
 ## Upstream Credit
 
 OpenNekaise is forked from [NanoClaw](https://github.com/qwibitai/nanoclaw) and has since been redesigned for the built environment — with ontology-grounded reasoning, per-building isolation, and structured building data at its core. Thanks to the NanoClaw maintainers for the lightweight starting point. It is hard to say no to [pure Claude Agent SDK-based AI agents](https://platform.claude.com/docs/en/agent-sdk/overview).
