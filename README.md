@@ -120,7 +120,7 @@ To make building mapping work, register each building channel with `folder=<buil
 
 ## Core Capabilities
 
-- Slack and WhatsApp messaging channels
+- Slack messaging (default channel)
 - Per-building container isolation with read-only building data mounts
 - Incremental structured memory that grows with every conversation
 - Scheduled tasks (cron, interval, one-off) with cross-group orchestration
