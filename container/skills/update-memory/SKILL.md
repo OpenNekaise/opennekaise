@@ -1,6 +1,6 @@
 ---
 name: update-memory
-description: Process recent conversation messages into structured long-term memory. Triggered automatically after conversations end, or manually via /update-memory. Reads raw messages from IPC, extracts key facts, and updates memory.md.
+description: Process recent conversation messages into structured long-term memory. Triggered automatically after conversations end, or by a daily scheduled sweep. Extracts key facts and updates memory.md.
 ---
 
 # Update Memory
@@ -16,20 +16,28 @@ Distill raw conversation messages into structured memory that persists across se
    cat /workspace/group/memory.md 2>/dev/null || echo "No existing memory."
    ```
 
-2. Review the conversation that just happened (it is already in your context). Extract only:
+2. Get the conversation to process:
+   - If you already have a conversation in context (auto-trigger after a chat), use that.
+   - If running as a scheduled task, read the messages history file:
+     ```bash
+     cat /workspace/ipc/messages_history.json 2>/dev/null || echo "[]"
+     ```
+   - If both are empty, skip — nothing to process.
+
+3. Extract only:
    - **Building facts**: sensor values, equipment specs, configurations discovered
    - **Decisions made**: what was agreed, what was rejected, and why
    - **User preferences**: how they want information presented, what they care about
    - **Open issues**: unresolved problems, pending investigations
    - **Corrections**: things you got wrong and the verified correct answer
 
-3. Merge with existing memory:
+4. Merge with existing memory:
    - Update entries that have new information
    - Remove entries that are no longer relevant
    - Do not duplicate what already exists
    - Keep the file concise — under 200 lines
 
-4. Write the updated memory:
+5. Write the updated memory:
    ```bash
    cat > /workspace/group/memory.md << 'MEMORY_EOF'
    # Memory

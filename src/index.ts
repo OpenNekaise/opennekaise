@@ -10,6 +10,7 @@ import {
   MAIN_GROUP_FOLDER,
   POLL_INTERVAL,
   SLACK_ONLY,
+  TIMEZONE,
   TRIGGER_PATTERN,
 } from './config.js';
 import { SlackChannel } from './channels/slack.js';
@@ -25,6 +26,7 @@ import {
   ensureContainerRuntimeRunning,
 } from './container-runtime.js';
 import {
+  createTask,
   getAllChats,
   getAllRegisteredGroups,
   getAllSessions,
@@ -32,6 +34,7 @@ import {
   getMessagesSince,
   getNewMessages,
   getRouterState,
+  getTasksForGroup,
   initDatabase,
   deleteRegisteredGroup,
   setRegisteredGroup,
@@ -110,6 +113,59 @@ function saveState(): void {
   setRouterState('last_agent_timestamp', JSON.stringify(lastAgentTimestamp));
 }
 
+const MEMORY_SWEEP_PROMPT = `[SCHEDULED TASK — MEMORY SWEEP]
+
+You have access to today's conversation history at /workspace/ipc/messages_history.json and your existing memory at /workspace/group/memory.md.
+
+Run /update-memory to process messages into structured memory. If messages_history.json is empty or memory has no meaningful changes, just skip.
+
+Wrap your entire response in <internal> tags — do not send anything to the user.`;
+
+function ensureMemorySweepTask(chatJid: string, groupFolder: string): void {
+  const tasks = getTasksForGroup(groupFolder);
+  const hasMemorySweep = tasks.some(
+    (t) => t.prompt.includes('MEMORY SWEEP') && t.status === 'active',
+  );
+  if (hasMemorySweep) return;
+
+  const now = new Date();
+  const taskId = `task-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  // Schedule at 2am local time daily
+  createTask({
+    id: taskId,
+    group_folder: groupFolder,
+    chat_jid: chatJid,
+    prompt: MEMORY_SWEEP_PROMPT,
+    schedule_type: 'cron',
+    schedule_value: '0 2 * * *',
+    context_mode: 'isolated',
+    next_run: nextCronRun('0 2 * * *'),
+    status: 'active',
+    created_at: now.toISOString(),
+  });
+  logger.info(
+    { groupFolder, taskId },
+    'Auto-created daily memory sweep task',
+  );
+}
+
+function nextCronRun(cronExpr: string): string {
+  // Simple helper: compute next run from a cron expression
+  try {
+    const { CronExpressionParser } = require('cron-parser');
+    const interval = CronExpressionParser.parseExpression(cronExpr, {
+      tz: TIMEZONE,
+    });
+    return interval.next().toISOString();
+  } catch {
+    // Fallback: tomorrow at 2am
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(2, 0, 0, 0);
+    return tomorrow.toISOString();
+  }
+}
+
 function registerGroup(jid: string, group: RegisteredGroup): void {
   if (isDmJid(jid)) {
     if (!isDmAllowed(jid)) {
@@ -141,6 +197,9 @@ function registerGroup(jid: string, group: RegisteredGroup): void {
 
   // Create group folder
   fs.mkdirSync(path.join(groupDir, 'logs'), { recursive: true });
+
+  // Auto-create daily memory sweep task if one doesn't exist
+  ensureMemorySweepTask(jid, group.folder);
 
   logger.info(
     { jid, name: group.name, folder: group.folder },
@@ -614,6 +673,11 @@ async function main(): Promise<void> {
   logger.info('Database initialized');
   loadState();
   pruneDisallowedDmRegistrations();
+
+  // Ensure all existing groups have a daily memory sweep task
+  for (const [jid, group] of Object.entries(registeredGroups)) {
+    ensureMemorySweepTask(jid, group.folder);
+  }
 
   // Graceful shutdown handlers
   const shutdown = async (signal: string) => {
