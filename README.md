@@ -38,6 +38,27 @@ This opens [Claude Code](https://claude.ai/code). Run `/setup` and it will walk 
 
 After setup, you don't need to read further — just ask Claude Code any question about your deployment, configuration, or building data. It already knows the codebase.
 
+## Sandbox, Sandbox, Sandbox
+
+Every agent invocation runs inside an ephemeral Docker container that is destroyed on exit. Nothing persists except what we explicitly mount in.
+
+**One container per group, per message.** When a building channel triggers the agent, the orchestrator spawns a fresh `docker run --rm` container with mounts scoped to that group only:
+
+| What the agent sees | Mount | Access |
+|---|---|---|
+| Its own working directory | `/workspace/group` | read-write |
+| Its building data | `/home/<building-folder>` | read-only |
+| Shared global prompt | `/workspace/global` | read-only |
+| IPC (messages, tasks) | `/workspace/ipc` | read-write |
+
+The agent **cannot** see other buildings, other groups' working directories, or the host application code. The main/admin context gets read-only access to the project root — it still can't modify it.
+
+**Secrets never touch disk.** API keys are passed via stdin JSON, consumed once, and deleted. A pre-tool hook strips credentials from the environment before any Bash subprocess runs.
+
+**Additional mounts are validated** against an external allowlist (`~/.config/opennekaise/mount-allowlist.json`) that lives outside the project root — agents can't tamper with it. Blocked patterns include `.ssh`, `.aws`, `.env`, credential files, and private keys.
+
+**Agent-runner source is recompiled at container startup** from a per-group copy that is re-synced from the canonical source on every run. No stale code survives across deployments.
+
 ## Building Data Design
 
 OpenNekaise expects building data under the project `home/` directory:
