@@ -1,3 +1,6 @@
+import fs from 'fs';
+import path from 'path';
+
 import { App, LogLevel } from '@slack/bolt';
 import type { GenericMessageEvent, BotMessageEvent } from '@slack/types';
 
@@ -206,6 +209,36 @@ export class SlackChannel implements Channel {
         { jid, err, queueSize: this.outgoingQueue.length, threadTs },
         'Failed to send Slack message, queued',
       );
+    }
+  }
+
+  async sendFile(jid: string, filePath: string, comment?: string): Promise<void> {
+    const channelId = jid.replace(/^slack:/, '');
+    const threadTs = this.threadContext.get(jid);
+
+    if (!this.connected) {
+      logger.warn({ jid, filePath }, 'Slack disconnected, cannot upload file');
+      return;
+    }
+
+    try {
+      const filename = path.basename(filePath);
+      const fileContent = fs.readFileSync(filePath);
+
+      const uploadArgs: Record<string, unknown> = {
+        channel_id: channelId,
+        file: fileContent,
+        filename,
+        initial_comment: comment || '',
+      };
+      if (threadTs) uploadArgs.thread_ts = threadTs;
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await this.app.client.filesUploadV2(uploadArgs as any);
+
+      logger.info({ jid, filePath, filename, threadTs }, 'Slack file uploaded');
+    } catch (err) {
+      logger.warn({ jid, filePath, err }, 'Failed to upload file to Slack');
     }
   }
 

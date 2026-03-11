@@ -21,6 +21,21 @@ export function stripInternalTags(text: string): string {
   return text.replace(/<internal>[\s\S]*?<\/internal>/g, '').trim();
 }
 
+/**
+ * Extract <file path="..."/> or <file>...</file> tags from agent output.
+ * Returns the container paths and the text with tags stripped.
+ */
+export function extractFileRefs(text: string): { files: string[]; text: string } {
+  const files: string[] = [];
+  // Match <file path="..."/> or <file path="...">...</file> or <file>/path</file>
+  const stripped = text
+    .replace(/<file\s+path="([^"]+)"\s*\/>/g, (_m, p) => { files.push(p); return ''; })
+    .replace(/<file\s+path="([^"]+)">[^<]*<\/file>/g, (_m, p) => { files.push(p); return ''; })
+    .replace(/<file>([^<]+)<\/file>/g, (_m, p) => { files.push(p.trim()); return ''; })
+    .trim();
+  return { files, text: stripped };
+}
+
 export function formatOutbound(rawText: string): string {
   const text = stripInternalTags(rawText);
   if (!text) return '';

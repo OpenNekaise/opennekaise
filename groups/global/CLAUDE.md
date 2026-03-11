@@ -68,6 +68,16 @@ The `/update-memory` skill processes raw messages into this file. It runs automa
 - Use `mcp__opennekaise__send_message` for acknowledgements during long tasks.
 - Store artifacts in `/workspace/group/`.
 
+## Sending Files to Users
+
+To send an image, plot, CSV, or any file to the user, include a `<file>` tag in your output:
+
+```
+<file path="/workspace/group/plot.png"/>
+```
+
+The host will upload the file to the chat channel. You can include text alongside the tag — the tag is stripped and the file is uploaded separately. Always save files to `/workspace/group/` first, then reference them with a `<file>` tag.
+
 ## Internal Thoughts
 
 Use `<internal>` tags for reasoning not sent to users.
