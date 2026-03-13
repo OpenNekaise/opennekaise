@@ -7,135 +7,158 @@ description: Convert a folder of heterogeneous documents (PDFs, images, markdown
 
 Turn a folder of raw documents into a KebGraph semantic model.
 
+## The principle
+
+**After you write the graph, the original documents should never need to be opened again.**
+
+The graph is not a summary or an index. It IS the building's knowledge. An AI agent working with this graph will have no access to the original PDFs, images, or spreadsheets. Everything the agent could ever need — every setpoint, every control sequence, every alarm threshold, every breakpoint in a control curve, every fire protection override — must live in the graph.
+
+If you leave something out, it's gone. If you summarize instead of transcribing, the detail is lost. When in doubt, include it. A Caption that's too long is better than a Caption that's too short.
+
 ## How it works
 
 1. User gives you a folder path
 2. You read every file in it — PDFs, images, markdown, CSV, TTL, text, whatever is there
-3. You extract building knowledge: systems, sensors, equipment, spaces, control logic, alarms, setpoints
+3. You extract ALL building knowledge into Sets, Actors, and Captions
 4. You write a KebGraph TTL file in the same folder
+5. The original documents become disposable — the graph is now the source of truth
 
 The LLM (you) is the parser. No format-specific tooling needed — just read and understand.
 
-## Step 1: Discover
+## Step 1: Discover and read EVERYTHING
 
-Glob the folder for all files. Read them all. For large folders, prioritize:
-- PDFs first — control cards (driftkort), operating manuals, commissioning docs are the richest source
-- Images — P&ID flow diagrams, distribution schematics, floor plans
+Glob the folder for all files. Read them all — completely. Don't skim.
+
+- PDFs — control cards (driftkort), operating manuals, commissioning docs. Read every page.
+- Images — P&ID flow diagrams, distribution schematics, floor plans. Study every label.
 - Existing TTL/RDF files — prior models to extend or incorporate
-- CSV/spreadsheet data — sensor lists, equipment registers, BMS point exports
+- CSV/spreadsheet data — sensor lists, equipment registers, BMS point exports. Every row matters.
 - Markdown and text files — any supporting documentation
 
 Use the Read tool for everything — it handles PDFs, images, and text natively.
 
-For very large PDFs (>10 pages), read in chunks using the `pages` parameter.
+For very large PDFs (>10 pages), read in chunks using the `pages` parameter. Do not skip pages.
 
-## Step 2: Understand the document types
+## Step 2: Understand what you're reading
 
-### Control cards (Driftkort)
+### Control cards (Driftkort) — the most valuable source
 
-Control cards are the single most valuable document type for building graphs. They are typically PDFs organized per system, each containing multiple pages:
+Control cards are PDFs organized per system, each containing:
 
-**Page 1: P&ID flow diagram** — a schematic showing every sensor and actuator in position, with color-coded flows (supply air, exhaust air, hot water, cold water). Read these images carefully — they show which sensors belong to which duct/pipe branch and how the system is connected.
+**Page 1: P&ID flow diagram** — schematic showing every sensor and actuator in position, with color-coded flows. Read these images carefully — trace every component label, note positions relative to heat exchangers/filters/fans, identify branch points.
 
-**Page 2+: Text pages** with structured sections:
+**Text pages** with structured sections — extract ALL of the following:
 
-- **General** (Allmänt) — equipment cabinet ID, system name, location served, investment area
-- **Control** (Styrning/Reglering) — how the system is controlled: which sensor drives which valve/damper, setpoint shift logic, outdoor compensation curves
-- **Startup sequence** — what happens when the unit starts (damper opens, fan delay, valve preheating)
-- **Shutdown/failure** — what closes or stops on power failure or unit stop
-- **Interlocks** (Förregling) — fan cross-interlocks, pump-fan dependencies
-- **Fire protection** (Brand) — smoke detector responses per zone, which dampers close, override logic, alarm hierarchy
-- **Freeze protection** (Frysskydd) — guard sensor threshold, what happens when triggered, manual reset requirements
-- **Defrost function** (Avfrostning) — differential pressure triggers, bypass behavior, exhaust temp limits
-- **Alarm table** (Larm) — every alarm object with type, priority (A/B), and communication channel
-- **Measurement table** (Mätningar) — every sensor/meter with type description, unit, and communication protocol
-- **Setting values** (Börvärden) — setpoint tables with specific numeric values
-- **Control curves** — outdoor temp vs supply temp breakpoint tables (typically 9 breakpoints)
+- **General** — equipment cabinet ID, system name, location served. Capture exactly.
+- **Control strategy** — which sensor drives which valve/damper, the full control chain. Capture the exact sequence.
+- **Setpoint shift** — outdoor compensation curves. Capture ALL breakpoints (typically 9 outdoor temp values mapped to 9 supply temp values). Write the complete table in the Caption.
+- **Heating/cooling sequence** — the cascade order. Which opens first, which opens next, and the reverse. Capture step by step.
+- **Startup sequence** — every step from off to running. Which damper opens first, delay before fan, preheat conditions, outdoor temp threshold for preheat.
+- **Shutdown/failure behavior** — what closes, what position things go to on power loss, spring-return behavior.
+- **Interlocks** — which fans interlock with which, pump-fan dependencies, cross-interlock conditions, how interlocks reset.
+- **Fire protection** — for EVERY smoke detector zone: what stops, which dampers close, which overrides which, fire vs service alarm distinction, whether unit restarts on combined signals. Capture per-zone.
+- **Freeze protection** — exact threshold temperature, which sensor triggers it, what it takes over, what stops, manual reset requirement, whether freeze guard is blocked during fire.
+- **Defrost function** — exact differential pressure trigger, which sensor measures it, bypass behavior, exhaust temp limit during defrost, duration, return to normal conditions.
+- **Alarm table** — EVERY alarm entry: object name, alarm type, priority (A/B), communication channel. Do not summarize — list them all in the Actor Captions.
+- **Measurement table** — EVERY sensor: object name, type, unit, communication protocol. Each one becomes an Actor.
+- **Setting values** — EVERY setpoint with its exact numeric value. Pressure setpoints in Pa, temperature thresholds in °C, defrost pressures, etc.
+- **Control curves** — the COMPLETE breakpoint table. All outdoor temp values and their corresponding supply temp values. This is one of the most important pieces of data in the building.
 
 ### Distribution diagrams
 
-For systems serving multiple areas (staircases, zones), separate diagrams show damper and smoke detector placement per zone. These map spatial structure to system topology.
+Show damper and smoke detector placement per zone (staircases, floors). Map every labeled component to its zone. Capture which dampers serve which areas.
 
 ### BMS point lists
 
-CSV or spreadsheet exports from the building management system. Each row = one data point. Usually contain: point name, description, unit, protocol address.
+Each row = one Actor. Capture: point name, description, unit, protocol address, database ID. These database IDs are ground-truth data anchors.
 
 ### Other documents
 
-Floor plans, energy declarations, commissioning reports, maintenance logs, tenant handbooks — all contain useful context for Captions even if they don't define new Actors.
+Floor plans, energy declarations, commissioning reports, maintenance logs — extract any facts that add to the graph. Building area, certification, year built, number of apartments, heating source, etc.
 
-## Step 3: Extract
+## Step 3: Build the graph — capture everything
 
-Build the graph from what you found. Think in systems, not pages.
+### Completeness checklist
+
+Before writing, verify you have captured:
+
+- [ ] Every sensor from every measurement table → Actor with full Caption
+- [ ] Every actuator (valve, damper, fan, pump) → Actor with full Caption
+- [ ] Every alarm condition → in the relevant Actor's Caption with type and priority
+- [ ] Every setpoint value → in the relevant Actor's or Set's Caption with exact number
+- [ ] Every control curve → complete breakpoint table in the system Set Caption
+- [ ] Every control sequence → step-by-step in the system Set Caption
+- [ ] Every interlock → in the system Set Caption
+- [ ] Every fire protection sequence → per-zone in the system Set Caption
+- [ ] Every freeze protection detail → threshold, behavior, reset in the system Set Caption
+- [ ] Every defrost condition → trigger, behavior, duration in the system Set Caption
+- [ ] Every startup/shutdown sequence → step-by-step in the system Set Caption
+- [ ] Every electricity meter and its place in the metering hierarchy → Actor with Caption
+- [ ] Building metadata → address, type, year, area, floors, certification in building Set Caption
+- [ ] System serving areas → which addresses/staircases each system serves
+- [ ] Shared sensors identified → created once at building level
 
 ### Building (top-level Set)
-One Set for the whole building. Caption includes: name, address, building type, year built, certifications, total area, number of floors, key systems present.
+Caption must include: full name, full address, building type, year built/rebuilt, certifications, total area, number of floors, number of apartments/units if residential, all system IDs present, shared sensor list.
 
 ### Systems as Sets
-Each control card typically describes one system. Each system becomes a Set connected to the building via `keb:cnx`. Common systems:
+Each control card = one system Set. Common systems:
+- Ventilation units (LB04, LB05, ...) — each AHU is its own Set
+- Heating system (VS01, VS02...) — radiator circuits, district heating
+- Cooling system (KB01...) — chilled water, cooling baffles
+- Domestic hot water (VV, VVC...) — DHW production and circulation
+- Garage ventilation — exhaust fans with CO/CO2 control
+- Alarm & control (AS201...) — central system for lighting, metering, elevator alarms
 
-- **Ventilation units** (LB04, LB05, LB07, LB10, LB11...) — each AHU is a Set
-- **Heating system** (VS01, VS02...) — radiator circuits, district heating connection
-- **Cooling system** (KB01...) — chilled water, cooling baffles
-- **Domestic hot water** (VV, VVC...) — DHW production and circulation
-- **Garage ventilation** — exhaust fans with CO/CO2 control
-- **Alarm & control** (AS201...) — central system for lighting, metering, elevator alarms
+**System Set Captions must be comprehensive.** They carry the entire operational logic. Write them as if the person reading them needs to understand the system without any other document. Include:
+- Equipment cabinet ID
+- Exact serving area (addresses, staircases, zones)
+- Complete control strategy with sensor→actuator chain
+- Complete setpoint shift curve (ALL breakpoints as a table)
+- Complete heating/cooling cascade sequence
+- Complete startup sequence with conditions and delays
+- Complete shutdown/failure behavior
+- All interlock dependencies
+- Fire protection per smoke detector zone
+- Freeze protection with exact threshold and behavior
+- Defrost conditions with exact triggers
+- Pump operating conditions (e.g., "runs when outdoor < +2°C")
 
 ### Subsystem Sets
-When a system has clear internal branches, create child Sets:
-- **Inlet air duct** / **Exhaust air duct** / **Supply air duct** / **Outlet air duct** — for AHU branches
-- **Distribution zones** — when dampers serve specific staircases or floors
-- **Heat exchanger** (VVX) — often dual-type (Set + Actor) since it groups sub-sensors and generates efficiency data
+- Duct branches (inlet, supply, exhaust, outlet) — with flow-direction Captions listing every component in order
+- Distribution zones — when dampers serve specific staircases
+- VVX heat exchanger — dual-type (Set + Actor)
 
-### Actors from measurement tables
-Every row in a measurement table becomes an Actor:
-- Temperature sensors (GT11, GT41, GT42, GT43, GT44, GT81...)
-- Pressure sensors (GP11, GP12, GP41, GP61, GP62...)
-- Flow sensors (GF41, GF42...)
-- Smoke detectors (GX71, GX72, GX73, GX74...)
-- Dampers (ST21, ST22, ST31, ST71, ST72, ST73...)
-- Fans (TF01, FF01...)
-- Control valves (SV21...)
-- Pumps (P1...)
-- Electricity meters (EL, via EcoG protocol)
-- Lux sensors, occupancy sensors
+### Actors — every monitored or controlled point
 
-### Actors from alarm tables
-Alarms themselves are not separate Actors — they describe fault conditions on existing Actors. Include alarm type and priority in the Actor's Caption.
+Every row in a measurement table becomes an Actor. Every actuator visible on a P&ID becomes an Actor.
 
-### What goes into Captions — this is where the real value is
-
-**Actor Captions** should include:
-- What it measures/controls and its unit
-- Setpoint value (from setting values table)
-- Alarm conditions and priorities
-- Communication protocol (DUC, EcoG, FO01, HD1-5)
-- Control error thresholds (e.g., "alarm if ±4°C for >30min")
-- Database ID or BMS address if known
-
-**System Set Captions** should include:
-- Equipment cabinet ID (AS201, AS202...)
-- Serving area (which addresses/staircases)
-- Full startup sequence
-- Full control strategy (which sensor controls which valve/damper)
-- Setpoint shift logic (outdoor compensation with breakpoint table)
-- Heating sequence (damper opens for heat recovery → valve opens for heat → reverse when demand drops)
-- Interlock logic
-- Fire protection sequence (per smoke detector zone: what closes, what overrides what)
-- Freeze protection threshold and behavior
-- Defrost trigger conditions
-
-**This is the most important part of the skill.** Control cards contain operational intelligence that no other document has. Every control sequence, every interlock, every fire response — capture it in Captions. An LLM reading these Captions later should understand how the system behaves without needing the original PDF.
+**Actor Captions must be self-contained.** Include:
+- What it measures or controls — full description, not abbreviation
+- Unit of measurement
+- Communication protocol (DUC, EcoG, FO01, HD1-HD5)
+- Setpoint value with exact number (from setting values table)
+- ALL alarm conditions: alarm type, priority, threshold, duration (from alarm table)
+- Control error thresholds (e.g., "±4°C for >30min = alarm, priority B")
+- Position in the system (e.g., "after filter, before heat exchanger")
+- What it controls or is controlled by (e.g., "controls SV21 and ST31 in sequence")
+- Database ID / BMS address if available
+- Any special behavior (e.g., freeze guard takeover, fire override)
 
 ### Shared sensors
-Some sensors appear on every system card (e.g., outdoor temperature sensor UTE-GT31). Create this Actor once and attach it to the building-level Set, not to individual systems. Reference it in system Captions by name.
+Outdoor temperature (UTE-GT31), outdoor lux (UTE-GX31) — create once at building level. Reference by name in system Captions that depend on them.
 
-### Electricity meters and sub-meters
-Buildings often have hierarchical metering: total → property → apartments → garage → EV charging → heat pump, etc. Each meter is an Actor. Group them in a metering Set. Note the hierarchy in Captions.
+### Electricity metering hierarchy
+Each meter is an Actor. Capture the full hierarchy in Captions:
+- Total building meter
+- Property common areas meter
+- Apartments meter
+- Garage meter
+- EV charging meter
+- Heat pump meter
+- Per-staircase meters (LB04-EL, LB05-EL...)
 
 ## Step 4: Build the namespace
-
-Derive the building namespace from the building name:
 
 ```
 @prefix keb: <https://KebnekaisePlayground.org/KebGraph#> .
@@ -148,11 +171,23 @@ Use a short, ASCII-safe building prefix (e.g., `rio10`, `ct42`, `vv17c`).
 
 ## Step 5: Write the TTL
 
-Write the file directly using the Write tool. KebGraph TTL is simple enough to write by hand.
+Write directly using the Write tool. Output: `{folder}/{building_name}.ttl`
 
-Output file: `{folder}/{building_name}.ttl`
+### Caption writing rules
 
-### TTL structure
+1. **Transcribe, don't summarize.** "Setpoint: per control curve" is useless. "Setpoint curve: outdoor +20→supply +18, +15→+18, +10→+19, +5→+19, 0→+19, -5→+19, -10→+20, -15→+20, -20→+20" is useful.
+
+2. **Include numbers.** "Freeze protection threshold" is useless. "Freeze protection at 7°C" is useful. "Pressure setpoint" is useless. "Supply air pressure setpoint: 65Pa" is useful.
+
+3. **Include sequences step by step.** "Controlled via DUC" is useless. "Startup: ST22 opens → FF01 starts after adjustable delay → SV21 opens max to preheat battery (when UTE-GT31 < +5°C) → ST21 opens → TF01 starts after adjustable delay → SV21 switches to regulated mode" is useful.
+
+4. **Include every alarm.** Don't say "has alarms." Say "Alarms: operating error priority A via FO01; fire alarm priority A via HD1; service alarm priority B via HD1; damper fault priority A via DUC; control error ±4°C >30min priority B via DUC."
+
+5. **Include fire logic per zone.** Don't say "has fire protection." Say "Fire (GX71 in supply duct): unit stops, outdoor air damper ST21 closes. Fire (GX72 in exhaust duct): bypass damper ST71 opens, unit speeds to controller setpoint. GX72 fire function overrides GX71. If unit has stopped on GX71 fire and GX72 indicates smoke, unit starts. Freeze guard blocked during fire. ST71 exercised via set time in DUC."
+
+6. **Include the full control curve.** A 9-breakpoint outdoor-to-supply temperature table is 2 lines of text and defines how the building responds to weather. Always include it.
+
+### TTL structure example
 
 ```turtle
 @prefix brick: <https://brickschema.org/schema/Brick#> .
@@ -160,20 +195,14 @@ Output file: `{folder}/{building_name}.ttl`
 @prefix keb: <https://KebnekaisePlayground.org/KebGraph#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-# Building (top-level Set)
 bldg:BuildingName a keb:Set ;
     keb:cnx bldg:LB04,
         bldg:VS01,
-        bldg:KB01,
-        bldg:AlarmControl ;
-    keb:hasCaption """Building name and address.
-Built: year. Rebuilt: year. Type: residential/office.
-Certification: if any. Area: X m2. Floors: N.
-Systems: ventilation (LB04, LB05...), heating (VS01),
-cooling (KB01), domestic hot water (VV01).
-Shared outdoor temp sensor: UTE-GT31."""^^xsd:string .
+        bldg:Metering ;
+    keb:hasActor bldg:UTE_GT31 ;
+    keb:hasCaption """[Full building identity, address, year,
+type, area, floors, all system IDs, shared sensors]"""^^xsd:string .
 
-# Ventilation unit (Set) — one per AHU
 bldg:LB04 a keb:Set ;
     keb:cnx bldg:LB04_InletDuct,
         bldg:LB04_ExhaustDuct,
@@ -181,74 +210,29 @@ bldg:LB04 a keb:Set ;
     keb:hasActor bldg:LB04_TF01,
         bldg:LB04_FF01,
         bldg:LB04_SV21,
-        bldg:LB04_P1 ;
-    keb:hasCaption """LB04 ventilation unit. Cabinet: AS202.
-Location: fan room. Serving: [address].
-Control: GT11 controls SV21 and ST31 in sequence.
-Setpoint shift via UTE-GT31 with 9-breakpoint curve.
-Heating sequence: ST31 opens for heat recovery →
-SV21 opens for heat. Reverse when demand drops.
-Startup: ST22 opens → FF01 starts after delay →
-SV21 opens max to preheat (at <+5°C outdoor) →
-ST21 opens → TF01 starts after delay → SV21 to regulated.
-Interlocks: TF01/FF01 cross-interlocked. P1 interlocks TF01 in winter.
-On stop/power failure: ST21 closes on spring.
-Freeze protection: GT81 takes over SV21 control,
-stops unit if battery temp falls below threshold.
-Defrost: GP41 pressure triggers ST31 bypass for ~10 min.
-Fire (GX71): unit stops, outdoor damper closes.
-Fire (GX72): bypass ST71 opens, unit speeds up.
-GX72 overrides GX71."""^^xsd:string .
-
-# Inlet air duct subsystem
-bldg:LB04_InletDuct a keb:Set ;
-    keb:hasActor bldg:LB04_GT41,
-        bldg:LB04_GP61,
-        bldg:LB04_ST21 ;
-    keb:hasCaption """Inlet air duct. Flow: outdoor →
-GT41 (temp) → filter (GP61 guard) → ST21 (damper) →
-TF01 (supply fan) → VVX heat exchanger."""^^xsd:string .
-
-# Actor examples
-bldg:LB04_GT11 a keb:Actor,
-        brick:Temperature_Sensor ;
-    keb:hasCaption """Supply air temperature sensor.
-Unit: °C. Via: DUC. Setpoint: per control curve.
-Alarm: control error (±4°C for >30min), priority B."""^^xsd:string .
-
-bldg:LB04_GT81 a keb:Actor,
-        brick:Temperature_Sensor ;
-    keb:hasCaption """Freeze guard sensor on heating battery.
-Unit: °C. Via: DUC. Threshold: 7°C.
-Takes over SV21 control on freeze risk.
-Stops unit if temp falls below threshold."""^^xsd:string .
-
-bldg:LB04_GX71 a keb:Actor,
-        brick:Smoke_Detector ;
-    keb:hasCaption """Supply air duct smoke detector.
-Fire: stops unit, closes outdoor damper.
-Service alarm priority B. Fire alarm priority A.
-Via: HD1."""^^xsd:string .
-
-# VVX as dual-type (Set + Actor)
-bldg:LB04_VVX a keb:Set,
-        keb:Actor,
-        brick:Heat_Exchanger ;
-    keb:hasActor bldg:LB04_GT42 ;
-    keb:hasCaption """Plate heat exchanger for heat recovery.
-Efficiency measurement via DUC.
-Low efficiency alarm, priority B.
-ST31 bypass damper controls heat recovery."""^^xsd:string .
+        bldg:LB04_P1,
+        bldg:LB04_ST31,
+        bldg:LB04_GT11,
+        bldg:LB04_GT81,
+        bldg:LB04_EL ;
+    keb:hasCaption """[Complete system description:
+cabinet ID, serving area, full control strategy,
+complete breakpoint table, full heating sequence,
+full startup sequence, full shutdown behavior,
+all interlocks, per-zone fire protection,
+freeze protection with threshold and behavior,
+defrost with trigger and duration,
+pump operating conditions]"""^^xsd:string .
 ```
 
 ### KebGraph rules
 
 - **4 edge types only**: `rdf:type`, `keb:cnx` (Set→Set), `keb:hasActor` (Set→Actor), `keb:hasCaption` (any→Literal)
 - **No Actor-to-Actor edges.** Actors are always grouped through Sets.
-- **Actors must be real data points** — things listed in measurement or alarm tables. Not passive equipment.
-- **Captions carry the operational intelligence** — control sequences, interlocks, fire logic, setpoints, alarm thresholds. This is the most valuable part of the graph.
-- **Sets provide hierarchy** — Building → System → Subsystem, or Building → Floor → Room.
-- **Dual-type entities** are allowed — VVX heat exchangers are commonly both Set and Actor.
+- **Actors = monitored or controlled points.** Things in measurement/alarm tables and on P&ID diagrams.
+- **Captions ARE the knowledge.** Not pointers to knowledge. Not summaries. The actual information.
+- **Sets provide hierarchy.** Building → System → Subsystem.
+- **Dual-type entities** allowed — VVX heat exchangers are commonly both Set and Actor.
 
 ### Common Brick types
 
@@ -256,25 +240,22 @@ ST31 bypass damper controls heat recovery."""^^xsd:string .
 |---|---|
 | Temperature sensor (GT) | `brick:Temperature_Sensor` |
 | Humidity sensor (GH) | `brick:Humidity_Sensor` |
-| CO2 sensor (GQ) | `brick:CO2_Sensor` |
-| CO sensor (GQ, in garages) | `brick:CO2_Sensor` |
+| CO2/CO sensor (GQ) | `brick:CO2_Sensor` |
 | Pressure sensor (GP) | `brick:Pressure_Sensor` |
 | Flow sensor (GF) | `brick:Flow_Sensor` |
-| Lux sensor (GX31) | `brick:Luminance_Sensor` |
+| Lux sensor | `brick:Luminance_Sensor` |
 | Electricity meter | `brick:Electrical_Meter` |
 | Thermal power meter | `brick:Thermal_Power_Sensor` |
 | Control valve (SV) | `brick:Control_Valve` |
-| General valve | `brick:Valve` |
 | Air damper (ST) | `brick:Damper` |
-| Fire damper (DK, brandspjäll) | `brick:Damper` |
+| Fire damper (DK) | `brick:Damper` |
 | Supply fan (TF) | `brick:Fan` |
 | Exhaust fan (FF) | `brick:Exhaust_Fan` |
 | Heat exchanger (VVX) | `brick:Heat_Exchanger` |
 | Smoke detector (GX7x) | `brick:Smoke_Detector` |
 | Pump (P) | `brick:Pump` |
-| Radiator (if monitored) | `brick:Radiator` |
 
-### Communication protocols in Captions
+### Communication protocols
 
 | Code | Meaning |
 |---|---|
@@ -283,29 +264,27 @@ ST31 bypass damper controls heat recovery."""^^xsd:string .
 | FO01 | Frequency converter fault relay |
 | HD1-HD5 | Hardwired digital inputs (fire, smoke) |
 
-## Step 6: Summarize
+## Step 6: Verify and summarize
 
-After writing the TTL, tell the user:
-- How many Sets and Actors were created
-- Which systems were modeled (list system IDs)
-- What control strategies were captured in Captions
-- What was ambiguous or missing (e.g., "measurement tables had no database IDs — using placeholder xxx")
-- What additional documents would improve the model (e.g., "BMS point export would add real database IDs")
+After writing the TTL:
+
+1. **Verify completeness** — go back through each source document. Is there anything you read that isn't in the graph? If yes, add it.
+2. Tell the user:
+   - How many Sets and Actors were created
+   - Which systems were modeled
+   - What information was fully captured vs. partially captured
+   - What's missing from the source material that would improve the graph (e.g., "no BMS point export — database IDs are placeholder xxx")
 
 ## Reading P&ID diagrams
 
-P&ID flow diagrams in control cards use color-coded lines and standardized symbols:
+- **Trace every flow path** — follow arrows and color bands to identify branches
+- **List every labeled component** — each label is a potential Actor
+- **Note positions** — before/after heat exchanger, before/after filter, which branch
+- **Find branch points** — where ducts split to serve zones (staircases, floors)
+- **Find fire zone boundaries** — smoke detectors and fire dampers mark zone edges
+- **Find shared sensors** — UTE-GT31 typically shown at top of every diagram
 
-- **Trace the flow path** — follow arrows and color bands to identify inlet, supply, exhaust, outlet branches
-- **Identify every labeled component** — each label (GT41, ST21, SV21, etc.) on the diagram is a potential Actor
-- **Note component positions** — which sensor is before/after the heat exchanger, which damper is on which branch
-- **Look for branch points** — where ducts split to serve different zones (staircases, floors, rooms)
-- **Fire/safety components** — smoke detectors (triangle symbols), fire dampers (DK), often at zone boundaries
-- **Identify shared sensors** — outdoor temperature sensor (UTE-GT31) typically shown at the top of every diagram
-
-Use the flow topology to structure your Sets (duct branches) and to write accurate flow-direction Captions.
-
-## Swedish HVAC naming conventions
+## Swedish HVAC naming
 
 | Code | Swedish | Meaning | Creates |
 |---|---|---|---|
@@ -329,17 +308,4 @@ Use the flow topology to structure your Sets (duct branches) and to write accura
 | UTE | Utomhus | Outdoor (shared sensor) | Actor |
 | AS | Apparatskåp | Equipment cabinet | metadata in Caption |
 
-Number suffixes: GT**11** = first temp sensor in subsystem 1, GT**41** = temp sensor in subsystem 4, GP**61** = pressure in subsystem 6.
-System prefixes: **LB04**-GT11 = GT11 belonging to ventilation unit LB04.
-
-## Tips
-
-- **Control cards are the priority** — one control card PDF can contain more graph-worthy information than 10 other documents combined.
-- **Capture control logic verbatim in Captions** — startup sequences, heating/cooling cascades, fire overrides, interlock dependencies. These are the operational brain of the building.
-- **Control curves (breakpoint tables)** are extremely valuable — include them in system Captions. They define how the building responds to weather.
-- **Alarm priorities matter** — Priority A = critical (fire, safety). Priority B = service/maintenance. Include both priority and type in Actor Captions.
-- **One building, many systems** — a residential complex might have 8+ ventilation units, each with its own control card. Model each as a separate Set.
-- **Shared sensors** — outdoor temperature (UTE-GT31) appears on every ventilation card. Create it once at building level.
-- **When information conflicts** between documents, note the conflict in the relevant Caption.
-- **Database IDs**: if BMS point exports include database identifiers, BACnet addresses, or Modbus registers, always include them in Actor Captions. These are the ground-truth data anchors.
-- **Don't skip the small details** — freeze protection thresholds, filter guard pressures, defrost triggers. These are exactly what an engineer needs when debugging a system at 2 AM.
+Number suffixes: GT**11** = subsystem 1, GT**41** = subsystem 4. System prefixes: **LB04**-GT11 = GT11 in unit LB04.
