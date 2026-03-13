@@ -161,9 +161,9 @@ Each meter is an Actor. Capture the full hierarchy in Captions:
 ## Step 4: Build the namespace
 
 ```
-@prefix keb: <https://KebnekaisePlayground.org/KebGraph#> .
+@prefix keb: <https://opennekaise.com/KebGraph#> .
 @prefix brick: <https://brickschema.org/schema/Brick#> .
-@prefix bldg: <https://KebnekaisePlayground.org/KebTown/{BuildingName}#> .
+@prefix bldg: <https://opennekaise.com/KebTown/{BuildingName}#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 ```
 
@@ -191,8 +191,8 @@ Write directly using the Write tool. Output: `{folder}/{building_name}.ttl`
 
 ```turtle
 @prefix brick: <https://brickschema.org/schema/Brick#> .
-@prefix bldg: <https://KebnekaisePlayground.org/KebTown/BuildingName#> .
-@prefix keb: <https://KebnekaisePlayground.org/KebGraph#> .
+@prefix bldg: <https://opennekaise.com/KebTown/BuildingName#> .
+@prefix keb: <https://opennekaise.com/KebGraph#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
 bldg:BuildingName a keb:Set ;
