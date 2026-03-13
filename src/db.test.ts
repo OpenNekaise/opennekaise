@@ -5,6 +5,7 @@ import {
   createTask,
   deleteTask,
   getAllChats,
+  getConversationForLocalDay,
   getMessagesSince,
   getNewMessages,
   getTaskById,
@@ -293,6 +294,68 @@ describe('getNewMessages', () => {
     const { messages, newTimestamp } = getNewMessages([], '', 'Andy');
     expect(messages).toHaveLength(0);
     expect(newTimestamp).toBe('');
+  });
+});
+
+describe('getConversationForLocalDay', () => {
+  beforeEach(() => {
+    storeChatMetadata('group@g.us', '2024-01-01T00:00:00.000Z');
+
+    store({
+      id: 'before-day',
+      chat_jid: 'group@g.us',
+      sender: 'user@s.whatsapp.net',
+      sender_name: 'User',
+      content: 'previous local day',
+      timestamp: '2024-01-01T07:59:59.000Z',
+    });
+    store({
+      id: 'start-day',
+      chat_jid: 'group@g.us',
+      sender: 'user@s.whatsapp.net',
+      sender_name: 'User',
+      content: 'start of local day',
+      timestamp: '2024-01-01T08:00:00.000Z',
+    });
+    storeMessage({
+      id: 'bot-midday',
+      chat_jid: 'group@g.us',
+      sender: 'bot@s.whatsapp.net',
+      sender_name: 'Bot',
+      content: 'bot response midday',
+      timestamp: '2024-01-01T20:00:00.000Z',
+      is_bot_message: true,
+    });
+    store({
+      id: 'end-day',
+      chat_jid: 'group@g.us',
+      sender: 'user@s.whatsapp.net',
+      sender_name: 'User',
+      content: 'end of local day',
+      timestamp: '2024-01-02T07:59:59.000Z',
+    });
+    store({
+      id: 'next-day',
+      chat_jid: 'group@g.us',
+      sender: 'user@s.whatsapp.net',
+      sender_name: 'User',
+      content: 'next local day',
+      timestamp: '2024-01-02T08:00:00.000Z',
+    });
+  });
+
+  it('returns the whole local calendar day in the requested timezone', () => {
+    const msgs = getConversationForLocalDay(
+      'group@g.us',
+      'America/Los_Angeles',
+      new Date('2024-01-01T18:00:00.000Z'),
+    );
+
+    expect(msgs.map((m) => m.id)).toEqual([
+      'start-day',
+      'bot-midday',
+      'end-day',
+    ]);
   });
 });
 

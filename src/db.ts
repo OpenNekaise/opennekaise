@@ -510,6 +510,117 @@ export function getRecentConversation(
   return rows.reverse();
 }
 
+interface ZonedDateParts {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+  minute: number;
+  second: number;
+}
+
+function getZonedDateParts(date: Date, timeZone: string): ZonedDateParts {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(date);
+
+  const map = Object.fromEntries(
+    parts
+      .filter((part) => part.type !== 'literal')
+      .map((part) => [part.type, Number(part.value)]),
+  ) as Record<string, number>;
+
+  return {
+    year: map.year,
+    month: map.month,
+    day: map.day,
+    hour: map.hour,
+    minute: map.minute,
+    second: map.second,
+  };
+}
+
+function zonedDateTimeToUtc(
+  year: number,
+  month: number,
+  day: number,
+  hour: number,
+  minute: number,
+  second: number,
+  timeZone: string,
+): Date {
+  const desiredUtcMs = Date.UTC(year, month - 1, day, hour, minute, second);
+  let guess = new Date(desiredUtcMs);
+
+  for (let i = 0; i < 5; i += 1) {
+    const zoned = getZonedDateParts(guess, timeZone);
+    const renderedUtcMs = Date.UTC(
+      zoned.year,
+      zoned.month - 1,
+      zoned.day,
+      zoned.hour,
+      zoned.minute,
+      zoned.second,
+    );
+    const diffMs = desiredUtcMs - renderedUtcMs;
+    if (diffMs === 0) return guess;
+    guess = new Date(guess.getTime() + diffMs);
+  }
+
+  return guess;
+}
+
+/**
+ * Fetch all conversation messages for the calendar day of `referenceDate`
+ * in the provided local timezone, INCLUDING bot responses.
+ */
+export function getConversationForLocalDay(
+  chatJid: string,
+  timeZone: string,
+  referenceDate: Date = new Date(),
+): NewMessage[] {
+  const local = getZonedDateParts(referenceDate, timeZone);
+  const start = zonedDateTimeToUtc(
+    local.year,
+    local.month,
+    local.day,
+    0,
+    0,
+    0,
+    timeZone,
+  );
+  const nextLocalMidnight = zonedDateTimeToUtc(
+    local.year,
+    local.month,
+    local.day + 1,
+    0,
+    0,
+    0,
+    timeZone,
+  );
+
+  const sql = `
+    SELECT id, chat_jid, sender, sender_name, content, timestamp
+    FROM messages
+    WHERE chat_jid = ?
+      AND timestamp >= ?
+      AND timestamp < ?
+      AND content != '' AND content IS NOT NULL
+    ORDER BY timestamp
+  `;
+
+  return db
+    .prepare(sql)
+    .all(chatJid, start.toISOString(), nextLocalMidnight.toISOString()) as NewMessage[];
+}
+
 // --- Session accessors ---
 
 export function getSession(groupFolder: string): string | undefined {

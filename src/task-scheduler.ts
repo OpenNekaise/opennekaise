@@ -16,8 +16,8 @@ import {
 } from './container-runner.js';
 import {
   getAllTasks,
+  getConversationForLocalDay,
   getDueTasks,
-  getRecentConversation,
   getTaskById,
   logTaskRun,
   updateTask,
@@ -114,7 +114,7 @@ async function runTask(
 
   // Write recent conversation history to IPC so scheduled tasks
   // (like the daily memory sweep) can read past messages.
-  const history = getRecentConversation(task.chat_jid, 100);
+  const history = getConversationForLocalDay(task.chat_jid, TIMEZONE);
   writeMessagesHistory(task.group_folder, history);
 
   let result: string | null = null;

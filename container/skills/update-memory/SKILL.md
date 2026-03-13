@@ -33,6 +33,7 @@ Distill raw conversation messages into structured memory that persists across se
 
 4. Merge with existing memory:
    - Update entries that have new information
+   - If a newer correction contradicts an older memory entry, rewrite or remove the old entry so memory reflects the latest verified understanding
    - Remove entries that are no longer relevant
    - Do not duplicate what already exists
    - Keep the file concise — under 200 lines
@@ -76,4 +77,5 @@ Last updated: [date]
 - Never store raw message text. Always distill into concise facts.
 - Prefer specific values over vague summaries ("COP was 3.2 on March 10" not "COP was discussed").
 - When updating, preserve existing valid entries. Only modify what changed.
+- Memory is not append-only. Later verified corrections should replace outdated entries.
 - After writing memory.md, wrap your entire response in `<internal>` tags so it is not sent to the user. Include a brief note of what was added/changed for logging purposes only.
