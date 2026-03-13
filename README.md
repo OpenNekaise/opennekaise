@@ -59,40 +59,31 @@ The agent **cannot** see other buildings, other groups' working directories, or 
 
 **Agent-runner source is recompiled at container startup** from a per-group copy that is re-synced from the canonical source on every run. No stale code survives across deployments.
 
-## Memory, memory, memory
+## Memory
 
-Memory is what turns Nekaise Agent from a tool you query into a colleague who knows your building. It accumulates corrections, remembers what was decided and why, and learns how you prefer to communicate. Over weeks and months, the agent becomes more useful — not because the model improved, but because the memory grew.
+Memory is what turns Nekaise Agent from a tool you query into a colleague who knows your building. It picks up corrections, remembers what was decided and why, and learns how you prefer to communicate. Over weeks and months, the agent becomes more useful — not because the model improved, but because the memory grew.
 
-### How it works
+Each group has a `memory.md` file that the agent reads at the start of every conversation. It stores distilled facts, decisions, user preferences, and open issues — never raw messages.
 
-Each group has a `memory.md` file (`groups/<folder>/memory.md`) that stores distilled facts, decisions, user preferences, and open issues — never raw messages. The agent reads it at the start of every conversation.
+Memory updates happen automatically in two ways:
 
-Memory is updated incrementally:
+- **After each conversation** — the agent reflects on what just happened and writes anything worth keeping to `memory.md`. If a user corrects a mistake, the old entry gets replaced, not duplicated.
+- **Daily sweep (2 am)** — a scheduled task reads the day's messages alongside existing memory and produces a cleaner, consolidated version.
 
-- **After each conversation**: the orchestrator auto-triggers the `/update-memory` skill. The agent reflects on what just happened and writes what matters to `memory.md`.
-- **Daily refinement (2am)**: a scheduled sweep reads the day's messages alongside existing memory and produces a cleaner, consolidated version. Auto-created for every group.
+The agent decides what matters. The update-memory skill gives it guardrails: be selective, prefer concrete values over vague summaries, keep the file under 200 lines.
 
-The LLM decides what is worth keeping. The skill (`container/skills/update-memory/SKILL.md`) gives it structure and rules — be ruthless, prefer specific values over vague summaries, never store raw text.
+### What the agent knows
 
-### Context layers
+The agent's context is layered — each layer adds more specificity:
 
-| Layer | File | Purpose |
+| Layer | File | What it does |
 |---|---|---|
-| System prompt | `groups/global/CLAUDE.md` | Shared rules for all building agents |
-| Admin prompt | `groups/main/CLAUDE.md` | Admin-only context and tools |
-| Per-building prompt | `groups/<folder>/CLAUDE.md` | Building-specific instructions |
-| Memory | `groups/<folder>/memory.md` | Accumulated knowledge from conversations |
+| Global prompt | `groups/global/CLAUDE.md` | Shared rules for all building agents — verify first, stay concise, use building data |
+| Admin prompt | `groups/main/CLAUDE.md` | Extra context and tools for the admin channel only |
+| Building prompt | `groups/<folder>/CLAUDE.md` | Building-specific instructions and quirks |
+| Memory | `groups/<folder>/memory.md` | Everything the agent has learned from past conversations |
 
-### Sessions
-
-Each group maintains a Claude Code session for short-term conversational continuity. Memory is the long-term layer — it survives session clears, restarts, and prompt updates.
-
-```bash
-# Clear sessions (e.g. after updating a system prompt):
-sqlite3 store/messages.db "DELETE FROM sessions;"
-systemctl --user restart opennekaise
-# Memory is untouched.
-```
+Sessions give the agent short-term continuity within a conversation. Memory is the long-term layer — it survives session clears, restarts, and prompt updates.
 
 ## Building Data Design
 
@@ -143,9 +134,19 @@ Key files:
 - `src/task-scheduler.ts` - recurring tasks
 - `src/db.ts` - persistent state and message storage
 
-Skills live in two places for two audiences:
-- `.claude/skills/` — for you, the developer running Claude Code on the host (`/setup`, `/debug`, `/customize`, etc.)
-- `container/skills/` — for the agent inside containers (`agent-browser`, `update-memory`). Synced into each group's container on every run.
+## Skills
+
+Skills are markdown files that teach the agent how to do specific things. They live in two places for two audiences:
+
+**Host skills** (`.claude/skills/`) — for you, the developer running Claude Code on this machine. These power slash commands like `/setup`, `/debug`, `/customize`, and `/update`. They never enter the container.
+
+**Container skills** (`container/skills/`) — for Nekaise Agent inside the sandbox. These get synced into every group's container on each run, so agents always have the latest version. Current container skills:
+
+- **update-memory** — distills conversations into structured long-term memory. Runs automatically after every chat and on a daily schedule. The agent decides what's worth keeping.
+- **agent-browser** — gives the agent a real browser for research, reading articles, extracting data from web pages, and interacting with web apps.
+- **ontology** — RDF, Brick Schema, and ASHRAE 223P support. Includes a self-bootstrapping Python tool for parsing TTL files, running SPARQL queries, exploring class hierarchies, and building semantic models. The agent can work with any standard building ontology out of the box.
+
+Skills are just markdown with optional tool permissions — no special framework. Drop a folder with a `SKILL.md` into `container/skills/` and it's available to every agent on the next run.
 
 ## Upstream Credit
 
