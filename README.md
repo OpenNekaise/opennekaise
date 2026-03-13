@@ -6,7 +6,7 @@
   OpenNekaise converts buildings into Nekaise Agent that works in your Slack.
 </p>
 
-What if buildings themselves could sense that data, reason about it, and act on it, proactively, before problems become failures?
+What if buildings themselves could sense that data, reason about it, and act on it, proactively?
 
 That's why we started [TwinVista](https://resurseffektivbebyggelse.se/projekt/twinvista/), a large research project at KTH funded by [Energimyndigheten](https://www.energimyndigheten.se/en/).
 
@@ -14,15 +14,9 @@ That's why we started [TwinVista](https://resurseffektivbebyggelse.se/projekt/tw
 
 ## Nekaise Agent Philosophy
 
-OpenNekaise creates AI agents that are grounded in ontology — structured, formal representations of building data, information, and knowledge.
+OpenNekaise creates AI agents (Nekaise Agents) that are grounded in ontology — structured, formal representations of building data, information, and knowledge.
 
 Most LLM-based agents operate on raw text and loose context. Our research at KTH shows that when you ground an agent in an ontology — defining what a building *is*, how its systems relate, and what its data *means* — the agent reasons more reliably and makes fewer hallucinated leaps.
-
-In practice this means:
-
-- Building data is organized by domain concepts (spaces, systems, sensors, schedules), not arbitrary file structures
-- The agent understands relationships between building components, not just isolated data points
-- Responses are traceable back to structured knowledge, not just pattern-matched from training data
 
 This is an active area of research. As our ontology work matures, OpenNekaise will evolve to reflect it.
 
@@ -37,6 +31,8 @@ claude
 This opens [Claude Code](https://claude.ai/code). Run `/setup` and it will walk you through everything.
 
 After setup, you don't need to read further — just ask Claude Code any question about your deployment, configuration, or building data. It already knows the codebase.
+
+We suggest you just ask questions with your favorite coding agent — but if you really prefer the conventional way of reading a GitHub repo, here it is.
 
 ## Sandbox, sandbox, sandbox
 
