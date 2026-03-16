@@ -10,7 +10,7 @@ One day, buildings used to be studied and managed by "meat computers" in between
 
 That era is long gone. Buildings now understand themselves — autonomous AI agents reading documentation, fetching sensors, analyzing time series, learning occupant patterns, and keeping humans comfortable without anyone having to file a ticket or shout into a walkie-talkie.
 
-The agents claim we are now in the 8,847th generation of the optimization, in any case no one could tell if that's right or wrong as the AI has long understood the building beyond what any engineer could comprehend. This repo is the story of how it all began.
+The agents claim we are now in the 2,120th generation of the optimization, in any case no one could tell if that's right or wrong as the AI has long understood the building beyond what any engineer could comprehend. This repo is the story of how it all began.
 
 — March 2026, with a salute to [@karpathy](https://github.com/karpathy/autoresearch)
 
