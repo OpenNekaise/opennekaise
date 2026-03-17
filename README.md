@@ -72,7 +72,9 @@ Over weeks and months the agent becomes more useful — not because the model im
 
 ## ONTOLOGY.ttl
 
-`groups/<folder>/ONTOLOGY.ttl` is the building's structured source of truth — a [KebGraph](container/skills/kebgraph/) semantic model containing equipment, sensors, setpoints, control sequences, and topology as Sets, Actors, and Captions in RDF/Turtle format.
+An ontology is a formal model that defines what things exist, what they mean, and how they relate to each other. Without one, an AI agent sees raw data — sensor readings, spreadsheets, scattered documents — but has no coherent understanding of the world behind that data. With an ontology, the agent knows that a supply temperature sensor belongs to a specific AHU, that the AHU serves a specific zone, and that the zone has occupancy patterns that affect how the system should run. This is a shared source of truth for decision-making — a semantic layer where value compounds over time as insights from one interaction benefit the next. In our case, the ontology is the agent's structured understanding of the building.
+
+`groups/<folder>/ONTOLOGY.ttl` is that model — a KebGraph semantic model containing equipment, sensors, setpoints, control sequences, and topology as Sets, Actors, and Captions in RDF/Turtle format.
 
 The ontology starts from documents. Run `/ontology-spawn` in Claude Code, point it at a building folder full of PDFs, images, spreadsheets, and control cards, and it extracts every building fact into `home/<building>/ONTOLOGY.ttl`. On first container run, the host seeds this into the group workspace automatically.
 
