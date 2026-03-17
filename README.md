@@ -72,11 +72,11 @@ Memory stores distilled facts, decisions, user preferences, and open issues — 
 
 Over weeks and months the agent becomes more useful — not because the model improved, but because the memory grew.
 
-## ontology.ttl
+## ONTOLOGY.ttl
 
-`groups/<folder>/ontology.ttl` is the building's structured source of truth — a [KebGraph](container/skills/kebgraph/) semantic model containing equipment, sensors, setpoints, control sequences, and topology as Sets, Actors, and Captions in RDF/Turtle format.
+`groups/<folder>/ONTOLOGY.ttl` is the building's structured source of truth — a [KebGraph](container/skills/kebgraph/) semantic model containing equipment, sensors, setpoints, control sequences, and topology as Sets, Actors, and Captions in RDF/Turtle format.
 
-The ontology starts from documents. Run `/ontology-spawn` in Claude Code, point it at a building folder full of PDFs, images, spreadsheets, and control cards, and it extracts every building fact into `home/<building>/ontology.ttl`. On first container run, the host seeds this into the group workspace automatically.
+The ontology starts from documents. Run `/ontology-spawn` in Claude Code, point it at a building folder full of PDFs, images, spreadsheets, and control cards, and it extracts every building fact into `home/<building>/ONTOLOGY.ttl`. On first container run, the host seeds this into the group workspace automatically.
 
 From there, the ontology is alive. It updates the same way memory does:
 
@@ -95,7 +95,7 @@ The agent's context is layered — each layer adds more specificity:
 | Admin prompt | `groups/main/CLAUDE.md` | Extra context and tools for the admin channel only |
 | Building prompt | `groups/<folder>/CLAUDE.md` | Building-specific instructions and quirks |
 | Memory | `groups/<folder>/MEMORY.md` | Everything the agent has learned from past conversations |
-| Ontology | `groups/<folder>/ontology.ttl` | Structured building truth — equipment, sensors, setpoints, control sequences, topology |
+| Ontology | `groups/<folder>/ONTOLOGY.ttl` | Structured building truth — equipment, sensors, setpoints, control sequences, topology |
 
 Sessions give the agent short-term continuity within a conversation. Memory and ontology are the long-term layers — they survive session clears, restarts, and prompt updates.
 
@@ -154,15 +154,15 @@ Skills are markdown files that teach the agent how to do specific things. They l
 
 **Host skills** (`.claude/skills/`) — for you, the developer running Claude Code on this machine. These power slash commands like `/setup`, `/debug`, `/customize`, and `/update`. They never enter the container.
 
-- **ontology-spawn** — reads all documents in a building folder (PDFs, images, spreadsheets, CSVs, existing TTL) and extracts every building fact into `ontology.ttl`. Run via Claude Code on the host.
+- **ontology-spawn** — reads all documents in a building folder (PDFs, images, spreadsheets, CSVs, existing TTL) and extracts every building fact into `ONTOLOGY.ttl`. Run via Claude Code on the host.
 
 **Container skills** (`container/skills/`) — for Nekaise Agent inside the sandbox. These get synced into every group's container on each run, so agents always have the latest version.
 
 - **update-memory** — powers the MEMORY.md system described above.
-- **update-ontology** — powers the ontology.ttl system described above.
+- **update-ontology** — powers the ONTOLOGY.ttl system described above.
 - **agent-browser** — gives the agent a real browser for research, reading articles, extracting data from web pages, and interacting with web apps.
 - **ontology** — RDF, Brick Schema, and ASHRAE 223P support. Python tool for parsing TTL files, running SPARQL queries, exploring class hierarchies, and building semantic models.
-- **kebgraph** — KebGraph reference and tooling. Defines the Sets, Actors, and Captions model used by ontology.ttl.
+- **kebgraph** — KebGraph reference and tooling. Defines the Sets, Actors, and Captions model used by ONTOLOGY.ttl.
 
 Skills are just markdown — no special framework. Drop a folder with a `SKILL.md` into `container/skills/` and it's available to every agent on the next run.
 

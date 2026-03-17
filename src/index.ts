@@ -115,7 +115,7 @@ function saveState(): void {
 
 const MEMORY_SWEEP_PROMPT = `[SCHEDULED TASK — MEMORY AND ONTOLOGY SWEEP]
 
-You have access to today's conversation history at /workspace/ipc/messages_history.json, your existing memory at /workspace/group/MEMORY.md, and your building ontology at /workspace/group/ontology.ttl.
+You have access to today's conversation history at /workspace/ipc/messages_history.json, your existing memory at /workspace/group/MEMORY.md, and your building ontology at /workspace/group/ONTOLOGY.ttl.
 
 1. Run /update-memory to process messages into structured memory. If messages_history.json is empty or memory has no meaningful changes, skip.
 2. Run /update-ontology to update the building ontology with any confirmed building facts from today's conversations (equipment changes, setpoint updates, sensor status, operational changes). If no confirmed building facts, skip.

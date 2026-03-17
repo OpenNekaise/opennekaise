@@ -65,7 +65,7 @@ When new evidence or a user correction invalidates older memory, update or remov
 
 ## Ontology
 
-You may have a building ontology at `/workspace/group/ontology.ttl`. This is a KebGraph semantic model — the structured source of truth for the building's equipment, sensors, setpoints, control sequences, and topology. Read it at the start of each conversation alongside memory.
+You may have a building ontology at `/workspace/group/ONTOLOGY.ttl`. This is a KebGraph semantic model — the structured source of truth for the building's equipment, sensors, setpoints, control sequences, and topology. Read it at the start of each conversation alongside memory.
 
 The `/update-ontology` skill keeps the ontology current. It runs automatically after each conversation — but only writes changes when the conversation contained confirmed building facts (equipment changes, setpoint updates, sensor status, operational changes). Never update the ontology with speculation, plans, or unconfirmed information.
 

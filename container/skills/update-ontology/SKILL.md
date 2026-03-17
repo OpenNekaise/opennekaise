@@ -1,6 +1,6 @@
 ---
 name: update-ontology
-description: Update the building's KebGraph ontology with confirmed facts from conversation or daily sweep. Reads the existing ontology.ttl, applies changes, writes the full file back. Only persists verified building facts — never speculation or plans.
+description: Update the building's KebGraph ontology with confirmed facts from conversation or daily sweep. Reads the existing ONTOLOGY.ttl, applies changes, writes the full file back. Only persists verified building facts — never speculation or plans.
 ---
 
 # Update Ontology
@@ -46,7 +46,7 @@ If the answer is no, do not update.
 
 1. Read existing ontology:
    ```bash
-   cat /workspace/group/ontology.ttl 2>/dev/null || echo "No ontology."
+   cat /workspace/group/ONTOLOGY.ttl 2>/dev/null || echo "No ontology."
    ```
 
 2. If no ontology exists, skip. The ontology must first be created via `/ontology-spawn` on the host.
@@ -63,7 +63,7 @@ If the answer is no, do not update.
 
 5. If there are changes, read the full ontology, apply the changes, and write the entire file back:
    ```bash
-   cat > /workspace/group/ontology.ttl << 'ONTOLOGY_EOF'
+   cat > /workspace/group/ONTOLOGY.ttl << 'ONTOLOGY_EOF'
    [full updated TTL content]
    ONTOLOGY_EOF
    ```

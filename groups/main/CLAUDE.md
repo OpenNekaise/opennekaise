@@ -110,7 +110,7 @@ The `/update-memory` skill processes raw messages into this file. It runs automa
 
 ## Ontology
 
-Building agents may have a KebGraph ontology at `/workspace/group/ontology.ttl` — the structured source of truth for equipment, sensors, setpoints, control sequences, and topology. The `/update-ontology` skill keeps it current after conversations and on a daily schedule, mirroring the memory system. Only confirmed building facts are persisted — never speculation.
+Building agents may have a KebGraph ontology at `/workspace/group/ONTOLOGY.ttl` — the structured source of truth for equipment, sensors, setpoints, control sequences, and topology. The `/update-ontology` skill keeps it current after conversations and on a daily schedule, mirroring the memory system. Only confirmed building facts are persisted — never speculation.
 
 ## After Corrections
 

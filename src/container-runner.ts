@@ -98,11 +98,11 @@ function resolveBuildingHostDir(homeDataDir: string, folder: string): string | n
 }
 
 /**
- * If the group workspace doesn't have ontology.ttl but the building home
+ * If the group workspace doesn't have ONTOLOGY.ttl but the building home
  * folder does, copy it as the initial seed. The agent maintains it from there.
  */
 function seedOntology(folder: string, groupDir: string): void {
-  const groupOntology = path.join(groupDir, 'ontology.ttl');
+  const groupOntology = path.join(groupDir, 'ONTOLOGY.ttl');
   if (fs.existsSync(groupOntology)) return;
 
   const buildingDir =
@@ -110,10 +110,10 @@ function seedOntology(folder: string, groupDir: string): void {
     resolveBuildingHostDir(HOME_DATA_DIR, folder.toLowerCase().trim().replace(/\s+/g, '-'));
   if (!buildingDir) return;
 
-  const homeOntology = path.join(buildingDir, 'ontology.ttl');
+  const homeOntology = path.join(buildingDir, 'ONTOLOGY.ttl');
   if (fs.existsSync(homeOntology)) {
     fs.copyFileSync(homeOntology, groupOntology);
-    logger.info({ folder }, 'Seeded ontology.ttl from building home folder');
+    logger.info({ folder }, 'Seeded ONTOLOGY.ttl from building home folder');
   }
 }
 
@@ -356,7 +356,7 @@ export async function runContainerAgent(
   const groupDir = resolveGroupFolderPath(group.folder);
   fs.mkdirSync(groupDir, { recursive: true });
 
-  // Seed ontology: if the group doesn't have ontology.ttl yet but the
+  // Seed ontology: if the group doesn't have ONTOLOGY.ttl yet but the
   // building home folder does, copy it in as the starting point.
   seedOntology(group.folder, groupDir);
 
