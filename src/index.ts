@@ -113,18 +113,20 @@ function saveState(): void {
   setRouterState('last_agent_timestamp', JSON.stringify(lastAgentTimestamp));
 }
 
-const MEMORY_SWEEP_PROMPT = `[SCHEDULED TASK — MEMORY SWEEP]
+const MEMORY_SWEEP_PROMPT = `[SCHEDULED TASK — MEMORY AND ONTOLOGY SWEEP]
 
-You have access to today's conversation history at /workspace/ipc/messages_history.json and your existing memory at /workspace/group/memory.md.
+You have access to today's conversation history at /workspace/ipc/messages_history.json, your existing memory at /workspace/group/memory.md, and your building ontology at /workspace/group/ontology.ttl.
 
-Run /update-memory to process messages into structured memory. If messages_history.json is empty or memory has no meaningful changes, just skip.
+1. Run /update-memory to process messages into structured memory. If messages_history.json is empty or memory has no meaningful changes, skip.
+2. Run /update-ontology to update the building ontology with any confirmed building facts from today's conversations (equipment changes, setpoint updates, sensor status, operational changes). If no confirmed building facts, skip.
 
 Wrap your entire response in <internal> tags — do not send anything to the user.`;
 
 function ensureMemorySweepTask(chatJid: string, groupFolder: string): void {
   const tasks = getTasksForGroup(groupFolder);
   const hasMemorySweep = tasks.some(
-    (t) => t.prompt.includes('MEMORY SWEEP') && t.status === 'active',
+    (t) =>
+      t.prompt.includes('MEMORY AND ONTOLOGY SWEEP') && t.status === 'active',
   );
   if (hasMemorySweep) return;
 
@@ -438,7 +440,7 @@ async function processGroupMessages(chatJid: string): Promise<boolean> {
         memoryUpdateTriggered = true;
         queue.sendMessage(
           chatJid,
-          '[SYSTEM] Conversation turn complete. Run /update-memory to process the recent messages into memory.',
+          '[SYSTEM] Conversation turn complete. Run /update-memory to process the recent messages into memory. If the conversation contained confirmed building facts (equipment changes, setpoint updates, sensor status, operational changes), also run /update-ontology.',
         );
       }
     }

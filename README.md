@@ -20,9 +20,9 @@ That's why we started [TwinVista](https://resurseffektivbebyggelse.se/projekt/tw
 
 ## Nekaise Agent Philosophy
 
-OpenNekaise creates AI agents (Nekaise Agents) that are grounded in ontology — structured, formal representations of building data, information, and knowledge.
+OpenNekaise creates AI agents (Nekaise Agents) that are grounded in ontology — a living information representation of the building that evolves through every interaction.
 
-Most LLM-based agents operate on raw text and loose context. Our research at KTH shows that when you ground an agent in an ontology — defining what a building *is*, how its systems relate, and what its data *means* — the agent reasons more reliably and makes fewer hallucinated leaps.
+Most LLM-based agents operate on raw text and loose context. Our research at KTH shows that when you ground an agent in an ontology — defining what a building *is*, how its systems relate, and what its data *means* — the agent reasons more reliably and makes fewer hallucinated leaps. The ontology is not a one-time creation from documents. It is the agent's persistent, structured understanding of the building — updated as conversations happen, as technicians report changes, and as the agent consolidates what it has learned.
 
 This is an active area of research. As our ontology work matures, OpenNekaise will evolve to reflect it.
 
@@ -84,6 +84,7 @@ The agent's context is layered — each layer adds more specificity:
 | Admin prompt | `groups/main/CLAUDE.md` | Extra context and tools for the admin channel only |
 | Building prompt | `groups/<folder>/CLAUDE.md` | Building-specific instructions and quirks |
 | Memory | `groups/<folder>/memory.md` | Everything the agent has learned from past conversations |
+| Ontology | `groups/<folder>/ontology.ttl` | Structured building truth — equipment, sensors, setpoints, control sequences, topology |
 
 Sessions give the agent short-term continuity within a conversation. Memory is the long-term layer — it survives session clears, restarts, and prompt updates.
 
@@ -142,9 +143,12 @@ Skills are markdown files that teach the agent how to do specific things. They l
 
 **Host skills** (`.claude/skills/`) — for you, the developer running Claude Code on this machine. These power slash commands like `/setup`, `/debug`, `/customize`, and `/update`. They never enter the container.
 
+- **ontology-spawn** — reads all documents in a building folder (PDFs, images, spreadsheets, CSVs, existing TTL) and extracts every building fact into a KebGraph semantic model. The output is a complete `ontology.ttl` that should make the original documents disposable. Run via Claude Code on the host.
+
 **Container skills** (`container/skills/`) — for Nekaise Agent inside the sandbox. These get synced into every group's container on each run, so agents always have the latest version. Current container skills:
 
 - **update-memory** — distills conversations into structured long-term memory. Runs automatically after every chat and on a daily schedule. The agent decides what's worth keeping.
+- **update-ontology** — keeps the building's KebGraph ontology current as confirmed facts emerge from conversations. Runs automatically after every chat and on a daily schedule, mirroring the memory system. Only persists verified building facts — never speculation or plans. Full rewrite of `ontology.ttl` on each update.
 - **agent-browser** — gives the agent a real browser for research, reading articles, extracting data from web pages, and interacting with web apps.
 - **ontology** — RDF, Brick Schema, and ASHRAE 223P support. Includes a self-bootstrapping Python tool for parsing TTL files, running SPARQL queries, exploring class hierarchies, and building semantic models. The agent can work with any standard building ontology out of the box.
 

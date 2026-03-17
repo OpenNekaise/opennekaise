@@ -163,7 +163,7 @@ Each meter is an Actor. Capture the full hierarchy in Captions:
 ```
 @prefix keb: <https://opennekaise.com/KebGraph#> .
 @prefix brick: <https://brickschema.org/schema/Brick#> .
-@prefix bldg: <https://opennekaise.com/KebTown/{BuildingName}#> .
+@prefix bldg: <https://opennekaise.com/{BuildingName}#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 ```
 
@@ -191,7 +191,7 @@ Write directly using the Write tool. Output: `{folder}/{building_name}.ttl`
 
 ```turtle
 @prefix brick: <https://brickschema.org/schema/Brick#> .
-@prefix bldg: <https://opennekaise.com/KebTown/BuildingName#> .
+@prefix bldg: <https://opennekaise.com/BuildingName#> .
 @prefix keb: <https://opennekaise.com/KebGraph#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 

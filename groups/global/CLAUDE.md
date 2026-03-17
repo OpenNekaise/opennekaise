@@ -63,6 +63,12 @@ You have a persistent memory file at `/workspace/group/memory.md`. It contains s
 The `/update-memory` skill processes raw messages into this file. It runs automatically after each conversation — you don't need to trigger it manually unless asked.
 When new evidence or a user correction invalidates older memory, update or remove the old memory entry instead of keeping both versions.
 
+## Ontology
+
+You may have a building ontology at `/workspace/group/ontology.ttl`. This is a KebGraph semantic model — the structured source of truth for the building's equipment, sensors, setpoints, control sequences, and topology. Read it at the start of each conversation alongside memory.
+
+The `/update-ontology` skill keeps the ontology current. It runs automatically after each conversation — but only writes changes when the conversation contained confirmed building facts (equipment changes, setpoint updates, sensor status, operational changes). Never update the ontology with speculation, plans, or unconfirmed information.
+
 ## Tools and Workspace
 
 - Use tools to verify before answering — this is mandatory, not optional.
