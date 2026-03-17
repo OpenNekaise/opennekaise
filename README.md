@@ -40,9 +40,9 @@ After setup, you don't need to read further — just ask Claude Code any questio
 
 We suggest you just ask questions with your favorite coding agent — but if you really prefer the conventional way of reading a GitHub repo, here it is.
 
-## Building Data and Isolation
+## Agents work in folders, sandboxed
 
-OpenNekaise keeps one folder per building under `home/`, using the building slug as folder name (e.g. `home/rio-10/`). User data in `home/` is local by design and not tracked by git — only `home/.gitkeep` is versioned.
+OpenNekaise keeps one folder per building under `home/`, using the building slug as folder name (e.g. `home/rio-10/`). Your Slack channel names should match these folder names — the channel name is how the system maps a conversation to its building data. User data in `home/` is local by design and not tracked by git — only `home/.gitkeep` is versioned.
 
 Every agent invocation runs inside an ephemeral Docker container that is destroyed on exit. One container per group, per message. The orchestrator spawns a fresh `docker run --rm` with mounts scoped to that group only:
 
@@ -56,12 +56,6 @@ Every agent invocation runs inside an ephemeral Docker container that is destroy
 The agent for one building **cannot** see other buildings, other groups' working directories, or the host application code. The main/admin context gets read-only access to the project root — it still can't modify it.
 
 **Secrets never touch disk.** API keys are passed via stdin JSON, consumed once, and deleted. A pre-tool hook strips credentials from the environment before any Bash subprocess runs.
-
-**Additional mounts are validated** against an external allowlist (`~/.config/opennekaise/mount-allowlist.json`) that lives outside the project root — agents can't tamper with it. Blocked patterns include `.ssh`, `.aws`, `.env`, credential files, and private keys.
-
-**Agent-runner source is recompiled at container startup** from a per-group copy that is re-synced from the canonical source on every run. No stale code survives across deployments.
-
-To map a building channel to its data folder, register it with `folder=<building-slug>` during `/setup`.
 
 DM channels are blocked by default. To allow direct messages to the bot, set `ADMIN_DM_JID` and `ALLOWED_DM_JIDS` in `.env`. Allowed DMs are restricted to the `main` context.
 
@@ -102,31 +96,6 @@ The agent's context is layered — each layer adds more specificity:
 | Ontology | `groups/<folder>/ONTOLOGY.ttl` | Structured building truth — equipment, sensors, setpoints, control sequences, topology |
 
 Sessions give the agent short-term continuity within a conversation. Memory and ontology are the long-term layers — they survive session clears, restarts, and prompt updates.
-
-## Core Capabilities
-
-- Slack messaging (default channel)
-- Per-building container isolation with read-only building data mounts
-- Incremental structured memory that grows with every conversation
-- Scheduled tasks (cron, interval, one-off) with cross-group orchestration
-- Web browsing and research via agent-browser skill
-- Docker container runtime (macOS/Linux)
-- Extensible via custom skills (`container/skills/`)
-
-## Architecture (Essential)
-
-```text
-Chat channel -> SQLite -> Message loop -> Containerized Claude agent -> Response
-```
-
-Single Node.js host process with per-group isolation and container execution.
-
-Key files:
-- `src/index.ts` - orchestrator and message loop
-- `src/channels/slack.ts` - channel integration
-- `src/container-runner.ts` - container lifecycle and mounts
-- `src/task-scheduler.ts` - recurring tasks
-- `src/db.ts` - persistent state and message storage
 
 ## SKILL.md
 
