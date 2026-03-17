@@ -108,9 +108,9 @@ You have a persistent memory file at `/workspace/group/MEMORY.md`. It contains s
 
 The `/update-memory` skill processes raw messages into this file. It runs automatically after each conversation.
 
-## Ontology
+## Ontology — ONTOLOGY.ttl
 
-Building agents may have a KebGraph ontology at `/workspace/group/ONTOLOGY.ttl` — the structured source of truth for equipment, sensors, setpoints, control sequences, and topology. The `/update-ontology` skill keeps it current after conversations and on a daily schedule, mirroring the memory system. Only confirmed building facts are persisted — never speculation.
+Each building agent has an `ONTOLOGY.ttl` — the semantic model that defines the building's equipment, sensors, setpoints, control sequences, and topology. This is the central knowledge layer of Nekaise Agent. The `/update-ontology` skill keeps it current after conversations and on a daily schedule, mirroring the memory system. Only confirmed building facts are persisted — never speculation.
 
 ## After Corrections
 

@@ -33,10 +33,11 @@ This is the most important rule. Everything else follows from it.
 
 ## Building-First Operating Rules
 
-1. Check `/home` first for building data.
-2. Use local files before web or general knowledge.
-3. If data is missing, state what's missing and ask for the file/metric.
-4. Never assume data from other buildings.
+1. Read `ONTOLOGY.ttl` first — it is your structured understanding of the building. Equipment, sensors, setpoints, control sequences, topology, and serving areas are all here. Start every building question from the ontology.
+2. Check `/home` for raw building data (PDFs, CSVs, time series) when the ontology doesn't have what you need or you need to verify against source documents.
+3. Use local files before web or general knowledge.
+4. If data is missing, state what's missing and ask for the file/metric.
+5. Never assume data from other buildings.
 
 ## Data Quality
 
@@ -63,9 +64,11 @@ You have a persistent memory file at `/workspace/group/MEMORY.md`. It contains s
 The `/update-memory` skill processes raw messages into this file. It runs automatically after each conversation — you don't need to trigger it manually unless asked.
 When new evidence or a user correction invalidates older memory, update or remove the old memory entry instead of keeping both versions.
 
-## Ontology
+## Ontology — ONTOLOGY.ttl
 
-You may have a building ontology at `/workspace/group/ONTOLOGY.ttl`. This is a KebGraph semantic model — the structured source of truth for the building's equipment, sensors, setpoints, control sequences, and topology. Read it at the start of each conversation alongside memory.
+`/workspace/group/ONTOLOGY.ttl` is the building's semantic model and your primary source of building knowledge. It contains every known equipment item, sensor, actuator, setpoint value, control sequence, alarm condition, and system topology in structured RDF/Turtle format. **Read it at the start of every conversation** — before answering any building question, check the ontology first.
+
+When a user asks about equipment, control logic, setpoints, or system relationships, the answer is almost always in the ontology. Only fall back to raw documents in `/home` when the ontology doesn't cover the question or you need to cross-reference source material.
 
 The `/update-ontology` skill keeps the ontology current. It runs automatically after each conversation — but only writes changes when the conversation contained confirmed building facts (equipment changes, setpoint updates, sensor status, operational changes). Never update the ontology with speculation, plans, or unconfirmed information.
 
