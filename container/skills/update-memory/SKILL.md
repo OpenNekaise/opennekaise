@@ -1,6 +1,6 @@
 ---
 name: update-memory
-description: Process recent conversation messages into structured long-term memory. Triggered automatically after conversations end, or by a daily scheduled sweep. Extracts key facts and updates memory.md.
+description: Process recent conversation messages into structured long-term memory. Triggered automatically after conversations end, or by a daily scheduled sweep. Extracts key facts and updates MEMORY.md.
 ---
 
 # Update Memory
@@ -13,7 +13,7 @@ Distill raw conversation messages into structured memory that persists across se
 
 1. Read existing memory (if any):
    ```bash
-   cat /workspace/group/memory.md 2>/dev/null || echo "No existing memory."
+   cat /workspace/group/MEMORY.md 2>/dev/null || echo "No existing memory."
    ```
 
 2. Get the conversation to process:
@@ -40,13 +40,13 @@ Distill raw conversation messages into structured memory that persists across se
 
 5. Write the updated memory:
    ```bash
-   cat > /workspace/group/memory.md << 'MEMORY_EOF'
+   cat > /workspace/group/MEMORY.md << 'MEMORY_EOF'
    # Memory
    [your structured content here]
    MEMORY_EOF
    ```
 
-## Output format for memory.md
+## Output format for MEMORY.md
 
 Use this structure:
 
@@ -78,4 +78,4 @@ Last updated: [date]
 - Prefer specific values over vague summaries ("COP was 3.2 on March 10" not "COP was discussed").
 - When updating, preserve existing valid entries. Only modify what changed.
 - Memory is not append-only. Later verified corrections should replace outdated entries.
-- After writing memory.md, wrap your entire response in `<internal>` tags so it is not sent to the user. Include a brief note of what was added/changed for logging purposes only.
+- After writing MEMORY.md, wrap your entire response in `<internal>` tags so it is not sent to the user. Include a brief note of what was added/changed for logging purposes only.

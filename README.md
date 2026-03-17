@@ -61,9 +61,9 @@ The agent **cannot** see other buildings, other groups' working directories, or 
 
 **Agent-runner source is recompiled at container startup** from a per-group copy that is re-synced from the canonical source on every run. No stale code survives across deployments.
 
-## memory.md
+## MEMORY.md
 
-`groups/<folder>/memory.md` is what turns Nekaise Agent from a tool you query into a colleague who knows your building. Each group has one. The agent reads it at the start of every conversation.
+`groups/<folder>/MEMORY.md` is what turns Nekaise Agent from a tool you query into a colleague who knows your building. Each group has one. The agent reads it at the start of every conversation.
 
 Memory stores distilled facts, decisions, user preferences, and open issues — never raw messages. The agent decides what matters. Updates happen automatically:
 
@@ -94,7 +94,7 @@ The agent's context is layered — each layer adds more specificity:
 | Global prompt | `groups/global/CLAUDE.md` | Shared rules for all building agents — verify first, stay concise, use building data |
 | Admin prompt | `groups/main/CLAUDE.md` | Extra context and tools for the admin channel only |
 | Building prompt | `groups/<folder>/CLAUDE.md` | Building-specific instructions and quirks |
-| Memory | `groups/<folder>/memory.md` | Everything the agent has learned from past conversations |
+| Memory | `groups/<folder>/MEMORY.md` | Everything the agent has learned from past conversations |
 | Ontology | `groups/<folder>/ontology.ttl` | Structured building truth — equipment, sensors, setpoints, control sequences, topology |
 
 Sessions give the agent short-term continuity within a conversation. Memory and ontology are the long-term layers — they survive session clears, restarts, and prompt updates.
@@ -158,7 +158,7 @@ Skills are markdown files that teach the agent how to do specific things. They l
 
 **Container skills** (`container/skills/`) — for Nekaise Agent inside the sandbox. These get synced into every group's container on each run, so agents always have the latest version.
 
-- **update-memory** — powers the memory.md system described above.
+- **update-memory** — powers the MEMORY.md system described above.
 - **update-ontology** — powers the ontology.ttl system described above.
 - **agent-browser** — gives the agent a real browser for research, reading articles, extracting data from web pages, and interacting with web apps.
 - **ontology** — RDF, Brick Schema, and ASHRAE 223P support. Python tool for parsing TTL files, running SPARQL queries, exploring class hierarchies, and building semantic models.
