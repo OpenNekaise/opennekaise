@@ -40,7 +40,7 @@ KebGraph is an LLM-native semantic modeling approach for buildings. It reuses vo
 ## Namespace
 
 ```
-keb: <https://KebnekaisePlayground.org/KebGraph#>
+keb: <https://opennekaise.com/KebGraph#>
 ```
 
 KebGraph uses Brick types for classification:
@@ -122,7 +122,7 @@ When creating a model for a building, follow this pattern:
 from rdflib import Graph, Namespace, RDF, RDFS, Literal, XSD
 
 g = Graph()
-KEB = Namespace("https://KebnekaisePlayground.org/KebGraph#")
+KEB = Namespace("https://opennekaise.com/KebGraph#")
 BRICK = Namespace("https://brickschema.org/schema/Brick#")
 BLDG = Namespace("http://example.org/building#")
 

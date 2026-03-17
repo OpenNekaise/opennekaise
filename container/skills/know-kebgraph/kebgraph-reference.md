@@ -12,14 +12,14 @@ KebGraph is an **LLM-native** semantic modeling approach for buildings. Unlike t
 ## Namespace
 
 ```
-keb:  <https://KebnekaisePlayground.org/KebGraph#>
+keb:  <https://opennekaise.com/KebGraph#>
 brick: <https://brickschema.org/schema/Brick#>
 xsd:  <http://www.w3.org/2001/XMLSchema#>
 ```
 
 Building-specific namespaces follow the pattern:
 ```
-https://KebnekaisePlayground.org/KebTown/{BuildingName}#
+https://opennekaise.com/KebTown/{BuildingName}#
 ```
 
 ## Core Concepts Deep Dive
@@ -326,8 +326,8 @@ Number suffixes indicate position/instance: GT**11** = first temp sensor in subs
 
 ```turtle
 @prefix brick: <https://brickschema.org/schema/Brick#> .
-@prefix bldg: <https://KebnekaisePlayground.org/KebTown/ExampleOffice#> .
-@prefix keb: <https://KebnekaisePlayground.org/KebGraph#> .
+@prefix bldg: <https://opennekaise.com/KebTown/ExampleOffice#> .
+@prefix keb: <https://opennekaise.com/KebGraph#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
 bldg:ExampleOffice a keb:Set ;
@@ -493,7 +493,7 @@ python3 "$ONTOOL" topology model.ttl
 python3 "$ONTOOL" query model.ttl "SELECT ?s ?caption WHERE { ?s keb:hasCaption ?caption }"
 
 # Describe a specific entity
-python3 "$ONTOOL" describe model.ttl "https://KebnekaisePlayground.org/KebTown/Building#Room_01_A1"
+python3 "$ONTOOL" describe model.ttl "https://opennekaise.com/KebTown/Building#Room_01_A1"
 
 # Validate structure
 python3 "$ONTOOL" validate model.ttl
