@@ -61,18 +61,29 @@ The agent **cannot** see other buildings, other groups' working directories, or 
 
 **Agent-runner source is recompiled at container startup** from a per-group copy that is re-synced from the canonical source on every run. No stale code survives across deployments.
 
-## Memory
+## memory.md
 
-Memory is what turns Nekaise Agent from a tool you query into a colleague who knows your building. It picks up corrections, remembers what was decided and why, and learns how you prefer to communicate. Over weeks and months, the agent becomes more useful — not because the model improved, but because the memory grew.
+`groups/<folder>/memory.md` is what turns Nekaise Agent from a tool you query into a colleague who knows your building. Each group has one. The agent reads it at the start of every conversation.
 
-Each group has a `memory.md` file that the agent reads at the start of every conversation. It stores distilled facts, decisions, user preferences, and open issues — never raw messages.
+Memory stores distilled facts, decisions, user preferences, and open issues — never raw messages. The agent decides what matters. Updates happen automatically:
 
-Memory updates happen automatically in two ways:
-
-- **After each conversation** — the agent reflects on what just happened and writes anything worth keeping to `memory.md`. If a user corrects a mistake, the old entry gets replaced, not duplicated.
+- **After each conversation** — the agent reflects on what just happened and writes anything worth keeping. Corrections replace old entries, not duplicate them.
 - **Daily sweep (2 am)** — a scheduled task reads the day's messages alongside existing memory and produces a cleaner, consolidated version.
 
-The agent decides what matters. The update-memory skill gives it guardrails: be selective, prefer concrete values over vague summaries, keep the file under 200 lines.
+Over weeks and months the agent becomes more useful — not because the model improved, but because the memory grew.
+
+## ontology.ttl
+
+`groups/<folder>/ontology.ttl` is the building's structured source of truth — a [KebGraph](container/skills/kebgraph/) semantic model containing equipment, sensors, setpoints, control sequences, and topology as Sets, Actors, and Captions in RDF/Turtle format.
+
+The ontology starts from documents. Run `/ontology-spawn` in Claude Code, point it at a building folder full of PDFs, images, spreadsheets, and control cards, and it extracts every building fact into `home/<building>/ontology.ttl`. On first container run, the host seeds this into the group workspace automatically.
+
+From there, the ontology is alive. It updates the same way memory does:
+
+- **After each conversation** — if the conversation contained a confirmed building fact (a setpoint changed, a sensor was replaced, a system was commissioned), the agent updates the ontology. Speculation and plans are never written.
+- **Daily sweep (2 am)** — the agent reviews the day's conversations against the current ontology and consolidates any confirmed facts that were missed.
+
+The agent reads the full ontology at the start of each conversation alongside memory. Memory knows context — who said what, what was decided. The ontology knows the building — what equipment exists, how it's configured, how it behaves.
 
 ### What the agent knows
 
@@ -86,7 +97,7 @@ The agent's context is layered — each layer adds more specificity:
 | Memory | `groups/<folder>/memory.md` | Everything the agent has learned from past conversations |
 | Ontology | `groups/<folder>/ontology.ttl` | Structured building truth — equipment, sensors, setpoints, control sequences, topology |
 
-Sessions give the agent short-term continuity within a conversation. Memory is the long-term layer — it survives session clears, restarts, and prompt updates.
+Sessions give the agent short-term continuity within a conversation. Memory and ontology are the long-term layers — they survive session clears, restarts, and prompt updates.
 
 ## Building Data Design
 
@@ -137,22 +148,23 @@ Key files:
 - `src/task-scheduler.ts` - recurring tasks
 - `src/db.ts` - persistent state and message storage
 
-## Skills
+## SKILL.md
 
 Skills are markdown files that teach the agent how to do specific things. They live in two places for two audiences:
 
 **Host skills** (`.claude/skills/`) — for you, the developer running Claude Code on this machine. These power slash commands like `/setup`, `/debug`, `/customize`, and `/update`. They never enter the container.
 
-- **ontology-spawn** — reads all documents in a building folder (PDFs, images, spreadsheets, CSVs, existing TTL) and extracts every building fact into a KebGraph semantic model. The output is a complete `ontology.ttl` that should make the original documents disposable. Run via Claude Code on the host.
+- **ontology-spawn** — reads all documents in a building folder (PDFs, images, spreadsheets, CSVs, existing TTL) and extracts every building fact into `ontology.ttl`. Run via Claude Code on the host.
 
-**Container skills** (`container/skills/`) — for Nekaise Agent inside the sandbox. These get synced into every group's container on each run, so agents always have the latest version. Current container skills:
+**Container skills** (`container/skills/`) — for Nekaise Agent inside the sandbox. These get synced into every group's container on each run, so agents always have the latest version.
 
-- **update-memory** — distills conversations into structured long-term memory. Runs automatically after every chat and on a daily schedule. The agent decides what's worth keeping.
-- **update-ontology** — keeps the building's KebGraph ontology current as confirmed facts emerge from conversations. Runs automatically after every chat and on a daily schedule, mirroring the memory system. Only persists verified building facts — never speculation or plans. Full rewrite of `ontology.ttl` on each update.
+- **update-memory** — powers the memory.md system described above.
+- **update-ontology** — powers the ontology.ttl system described above.
 - **agent-browser** — gives the agent a real browser for research, reading articles, extracting data from web pages, and interacting with web apps.
-- **ontology** — RDF, Brick Schema, and ASHRAE 223P support. Includes a self-bootstrapping Python tool for parsing TTL files, running SPARQL queries, exploring class hierarchies, and building semantic models. The agent can work with any standard building ontology out of the box.
+- **ontology** — RDF, Brick Schema, and ASHRAE 223P support. Python tool for parsing TTL files, running SPARQL queries, exploring class hierarchies, and building semantic models.
+- **kebgraph** — KebGraph reference and tooling. Defines the Sets, Actors, and Captions model used by ontology.ttl.
 
-Skills are just markdown with optional tool permissions — no special framework. Drop a folder with a `SKILL.md` into `container/skills/` and it's available to every agent on the next run.
+Skills are just markdown — no special framework. Drop a folder with a `SKILL.md` into `container/skills/` and it's available to every agent on the next run.
 
 ## Upstream Credit
 
