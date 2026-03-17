@@ -125,7 +125,7 @@ OpenNekaise is forked from [NanoClaw](https://github.com/qwibitai/nanoclaw) and 
 
 We also thank [OpenClaw](https://github.com/openclaw/openclaw) and its contributors for opening a new way of thinking and working with LLMs.
 
-Our ontology work builds on [Brick Schema](https://brickschema.org/) ([GitHub](https://github.com/BrickSchema/Brick)), an open-source effort to standardize semantic descriptions of buildings — their equipment, sensors, and relationships. Brick gave us the vocabulary to describe buildings in a way that machines can reason about.
+Our ontology work builds on [Brick Schema](https://brickschema.org/) ([GitHub](https://github.com/BrickSchema/Brick)) and [Open223](https://open223.info/) ([GitHub](https://github.com/open223)). Brick is an open-source effort to standardize semantic descriptions of buildings, and Open223 supports the emerging ASHRAE 223P standard. Together they provide the vocabulary and tooling that help us describe buildings in a way that machines can reason about.
 
 ## License
 
