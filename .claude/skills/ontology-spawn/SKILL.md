@@ -171,7 +171,7 @@ Use a short, ASCII-safe building prefix (e.g., `rio10`, `ct42`, `vv17c`).
 
 ## Step 5: Write the TTL
 
-Write directly using the Write tool. Output: `{folder}/{building_name}.ttl`
+Write directly using the Write tool. Output: `{folder}/ontology.ttl`
 
 ### Caption writing rules
 

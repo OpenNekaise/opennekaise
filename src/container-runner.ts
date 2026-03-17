@@ -97,6 +97,26 @@ function resolveBuildingHostDir(homeDataDir: string, folder: string): string | n
   return null;
 }
 
+/**
+ * If the group workspace doesn't have ontology.ttl but the building home
+ * folder does, copy it as the initial seed. The agent maintains it from there.
+ */
+function seedOntology(folder: string, groupDir: string): void {
+  const groupOntology = path.join(groupDir, 'ontology.ttl');
+  if (fs.existsSync(groupOntology)) return;
+
+  const buildingDir =
+    resolveBuildingHostDir(HOME_DATA_DIR, folder) ??
+    resolveBuildingHostDir(HOME_DATA_DIR, folder.toLowerCase().trim().replace(/\s+/g, '-'));
+  if (!buildingDir) return;
+
+  const homeOntology = path.join(buildingDir, 'ontology.ttl');
+  if (fs.existsSync(homeOntology)) {
+    fs.copyFileSync(homeOntology, groupOntology);
+    logger.info({ folder }, 'Seeded ontology.ttl from building home folder');
+  }
+}
+
 function buildVolumeMounts(
   group: RegisteredGroup,
   isMain: boolean,
@@ -335,6 +355,10 @@ export async function runContainerAgent(
 
   const groupDir = resolveGroupFolderPath(group.folder);
   fs.mkdirSync(groupDir, { recursive: true });
+
+  // Seed ontology: if the group doesn't have ontology.ttl yet but the
+  // building home folder does, copy it in as the starting point.
+  seedOntology(group.folder, groupDir);
 
   const mounts = buildVolumeMounts(group, input.isMain, input.isDm);
   const safeName = group.folder.replace(/[^a-zA-Z0-9-]/g, '-');
