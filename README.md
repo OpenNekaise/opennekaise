@@ -103,7 +103,7 @@ Sessions give the agent short-term continuity within a conversation. Memory and 
 
 ## SKILL.md
 
-Skills are markdown files that teach the agent how to do specific things. They live in two places for two audiences:
+Skills are markdown files that teach the agent how to do specific things — see [Agent Skills](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview). They live in two places for two audiences:
 
 **Host skills** (`.claude/skills/`) — for you, the developer running Claude Code on this machine. These power slash commands like `/setup`, `/debug`, `/customize`, and `/update`. They never enter the container.
 
@@ -114,8 +114,7 @@ Skills are markdown files that teach the agent how to do specific things. They l
 - **update-memory** — powers the MEMORY.md system described above.
 - **update-ontology** — powers the ONTOLOGY.ttl system described above.
 - **agent-browser** — gives the agent a real browser for research, reading articles, extracting data from web pages, and interacting with web apps.
-- **ontology** — RDF, Brick Schema, and ASHRAE 223P support. Python tool for parsing TTL files, running SPARQL queries, exploring class hierarchies, and building semantic models.
-- **kebgraph** — semantic model reference and tooling used by ONTOLOGY.ttl.
+- **know-ontology** — RDF, Brick Schema, and ASHRAE 223P support. Python tool for parsing TTL files, running SPARQL queries, exploring class hierarchies, and building semantic models.
 
 Skills are directories, not just markdown. A skill folder contains a `SKILL.md` with instructions, and can include additional markdown files, scripts, and reference materials — Claude loads them progressively as needed. Drop a folder with a `SKILL.md` into `container/skills/` and it's available to every agent on the next run.
 

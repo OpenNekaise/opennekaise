@@ -39,4 +39,4 @@ home/*
 agents-sdk-docs
 
 # Unpublished KebGraph skill (paper not yet released)
-container/skills/kebgraph/
+container/skills/know-kebgraph/
