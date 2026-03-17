@@ -119,11 +119,13 @@ Skills are markdown files that teach the agent how to do specific things. They l
 
 Skills are directories, not just markdown. A skill folder contains a `SKILL.md` with instructions, and can include additional markdown files, scripts, and reference materials — Claude loads them progressively as needed. Drop a folder with a `SKILL.md` into `container/skills/` and it's available to every agent on the next run.
 
-## Upstream Credit
+## Acknowledgements
 
 OpenNekaise is forked from [NanoClaw](https://github.com/qwibitai/nanoclaw) and has since been redesigned for the built environment — with ontology-grounded reasoning, per-building isolation, and structured building data at its core. Thanks to the NanoClaw maintainers for the lightweight starting point. It is hard to say no to [pure Claude Agent SDK-based AI agents](https://platform.claude.com/docs/en/agent-sdk/overview).
 
 We also thank [OpenClaw](https://github.com/openclaw/openclaw) and its contributors for opening a new way of thinking and working with LLMs.
+
+Our ontology work builds on [Brick Schema](https://brickschema.org/) ([GitHub](https://github.com/BrickSchema/Brick)), an open-source effort to standardize semantic descriptions of buildings — their equipment, sensors, and relationships. Brick gave us the vocabulary to describe buildings in a way that machines can reason about.
 
 ## License
 
