@@ -10,7 +10,7 @@
 
 OpenNekaise creates AI agents (Nekaise Agents) that are grounded in ontology — a living information representation of the building that evolves through every interaction.
 
-Most LLM-based agents operate on raw text and loose context. Our research at KTH shows that when you ground an agent in an ontology — defining what a building *is*, how its systems relate, and what its data *means* — the agent reasons more reliably and makes fewer hallucinated leaps. The ontology is not a one-time creation from documents. It is the agent's persistent, structured understanding of the building — updated as conversations happen, as technicians report changes, and as the agent consolidates what it has learned.
+Most LLM-based agents operate on raw text and loose context. [Our research at KTH](https://www.vr.se/english/swecris.html?project%3DP2023-01521_Energi#/) shows that when you ground an agent in an ontology — defining what a building *is*, how its systems relate, and what its data *means* — the agent reasons more reliably and makes fewer hallucinated leaps. The ontology is not a one-time creation from documents. It is the agent's persistent, structured understanding of the building — updated as conversations happen, as technicians report changes, as new files are added, and as the agent consolidates what it has learned.
 
 This is an active area of research. As our ontology work matures, OpenNekaise will evolve to reflect it.
 
