@@ -70,33 +70,33 @@ If the answer is no, do not update.
 
 ## What changes look like
 
-### Caption updates (most common)
-A setpoint changed, an alarm was added, an operational note was confirmed. Find the relevant Actor or Set and rewrite its `sg:hasCaption` with the updated information. Keep all existing information in the Caption that is still valid — only change what actually changed.
+### Description updates (most common)
+A setpoint changed, an alarm was added, an operational note was confirmed. Find the relevant Point or Group and rewrite its `sg:hasDescription` with the updated information. Keep all existing information in the description that is still valid — only change what actually changed.
 
-### New Actors
-A sensor or actuator was installed. Add it as a new `sg:Actor` with the correct Brick type, a full Caption, and a `sg:hasActor` edge from its parent Set.
+### New Points
+A sensor or actuator was installed. Add it as a new `sg:Point` with the correct Brick type, a full description, and a `sg:hasPoint` edge from its parent Group.
 
-### New Sets
-A new system or subsystem was commissioned. Add it as a `sg:Set` with a comprehensive Caption, connected to its parent via `sg:cnx`.
+### New Groups
+A new system or subsystem was commissioned. Add it as a `sg:Group` with a comprehensive description, connected to its parent via `sg:contains`.
 
 ### Removals
-Equipment was decommissioned. Remove the Actor or Set entirely. Do not leave stubs or "decommissioned" markers — if it's gone, it's gone from the graph.
+Equipment was decommissioned. Remove the Point or Group entirely. Do not leave stubs or "decommissioned" markers — if it's gone, it's gone from the graph.
 
 ## Graph rules (must follow)
 
-- **4 edge types only**: `rdf:type`, `sg:cnx` (Set to Set), `sg:hasActor` (Set to Actor), `sg:hasCaption` (any to Literal)
-- **No Actor-to-Actor edges.** Actors are grouped through Sets.
-- **Captions ARE the knowledge.** Not pointers. Not summaries. The actual information with exact numbers.
-- **Sets provide hierarchy.** Building, System, Subsystem.
+- **4 edge types only**: `rdf:type`, `sg:contains` (Group to Group), `sg:hasPoint` (Group to Point), `sg:hasDescription` (any to Literal)
+- **No Point-to-Point edges.** Points are grouped through Groups.
+- **Descriptions ARE the knowledge.** Not pointers. Not summaries. The actual information with exact numbers.
+- **Groups provide hierarchy.** Building, System, Subsystem.
 - **Full rewrite.** Always write the complete file. Never attempt partial patches.
 
 ## Quality rules
 
 - Never add speculative information. Only confirmed facts.
-- Never weaken a Caption. If you update a setpoint, keep all other information in the Caption intact.
-- Never remove information from a Caption unless it was explicitly corrected or the equipment was decommissioned.
+- Never weaken a description. If you update a setpoint, keep all other information in the description intact.
+- Never remove information from a description unless it was explicitly corrected or the equipment was decommissioned.
 - If you are unsure whether something is confirmed, do not update. Err on the side of not changing.
-- Include the date of change in the Caption when updating operational values (e.g., "Supply setpoint: 35°C (changed 2026-03-17, was 32°C)").
+- Include the date of change in the description when updating operational values (e.g., "Supply setpoint: 35°C (changed 2026-03-17, was 32°C)").
 
 ## Output
 

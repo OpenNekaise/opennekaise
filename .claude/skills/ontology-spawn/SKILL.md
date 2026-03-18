@@ -13,13 +13,13 @@ Turn a folder of raw documents into a building semantic model.
 
 The graph is not a summary or an index. It IS the building's knowledge. An AI agent working with this graph will have no access to the original PDFs, images, or spreadsheets. Everything the agent could ever need — every setpoint, every control sequence, every alarm threshold, every breakpoint in a control curve, every fire protection override — must live in the graph.
 
-If you leave something out, it's gone. If you summarize instead of transcribing, the detail is lost. When in doubt, include it. A Caption that's too long is better than a Caption that's too short.
+If you leave something out, it's gone. If you summarize instead of transcribing, the detail is lost. When in doubt, include it. A description that's too long is better than one that's too short.
 
 ## How it works
 
 1. User gives you a folder path
 2. You read every file in it — PDFs, images, markdown, CSV, TTL, text, whatever is there
-3. You extract ALL building knowledge into Sets, Actors, and Captions
+3. You extract ALL building knowledge into Groups, Points, and Descriptions
 4. You write a building graph TTL file in the same folder
 5. The original documents become disposable — the graph is now the source of truth
 
@@ -51,7 +51,7 @@ Control cards are PDFs organized per system, each containing:
 
 - **General** — equipment cabinet ID, system name, location served. Capture exactly.
 - **Control strategy** — which sensor drives which valve/damper, the full control chain. Capture the exact sequence.
-- **Setpoint shift** — outdoor compensation curves. Capture ALL breakpoints (typically 9 outdoor temp values mapped to 9 supply temp values). Write the complete table in the Caption.
+- **Setpoint shift** — outdoor compensation curves. Capture ALL breakpoints (typically 9 outdoor temp values mapped to 9 supply temp values). Write the complete table in the description.
 - **Heating/cooling sequence** — the cascade order. Which opens first, which opens next, and the reverse. Capture step by step.
 - **Startup sequence** — every step from off to running. Which damper opens first, delay before fan, preheat conditions, outdoor temp threshold for preheat.
 - **Shutdown/failure behavior** — what closes, what position things go to on power loss, spring-return behavior.
@@ -59,8 +59,8 @@ Control cards are PDFs organized per system, each containing:
 - **Fire protection** — for EVERY smoke detector zone: what stops, which dampers close, which overrides which, fire vs service alarm distinction, whether unit restarts on combined signals. Capture per-zone.
 - **Freeze protection** — exact threshold temperature, which sensor triggers it, what it takes over, what stops, manual reset requirement, whether freeze guard is blocked during fire.
 - **Defrost function** — exact differential pressure trigger, which sensor measures it, bypass behavior, exhaust temp limit during defrost, duration, return to normal conditions.
-- **Alarm table** — EVERY alarm entry: object name, alarm type, priority (A/B), communication channel. Do not summarize — list them all in the Actor Captions.
-- **Measurement table** — EVERY sensor: object name, type, unit, communication protocol. Each one becomes an Actor.
+- **Alarm table** — EVERY alarm entry: object name, alarm type, priority (A/B), communication channel. Do not summarize — list them all in the Point descriptions.
+- **Measurement table** — EVERY sensor: object name, type, unit, communication protocol. Each one becomes a Point.
 - **Setting values** — EVERY setpoint with its exact numeric value. Pressure setpoints in Pa, temperature thresholds in °C, defrost pressures, etc.
 - **Control curves** — the COMPLETE breakpoint table. All outdoor temp values and their corresponding supply temp values. This is one of the most important pieces of data in the building.
 
@@ -70,7 +70,7 @@ Show damper and smoke detector placement per zone (staircases, floors). Map ever
 
 ### BMS point lists
 
-Each row = one Actor. Capture: point name, description, unit, protocol address, database ID. These database IDs are ground-truth data anchors.
+Each row = one Point. Capture: point name, description, unit, protocol address, database ID. These database IDs are ground-truth data anchors.
 
 ### Other documents
 
@@ -82,35 +82,35 @@ Floor plans, energy declarations, commissioning reports, maintenance logs — ex
 
 Before writing, verify you have captured:
 
-- [ ] Every sensor from every measurement table → Actor with full Caption
-- [ ] Every actuator (valve, damper, fan, pump) → Actor with full Caption
-- [ ] Every alarm condition → in the relevant Actor's Caption with type and priority
-- [ ] Every setpoint value → in the relevant Actor's or Set's Caption with exact number
-- [ ] Every control curve → complete breakpoint table in the system Set Caption
-- [ ] Every control sequence → step-by-step in the system Set Caption
-- [ ] Every interlock → in the system Set Caption
-- [ ] Every fire protection sequence → per-zone in the system Set Caption
-- [ ] Every freeze protection detail → threshold, behavior, reset in the system Set Caption
-- [ ] Every defrost condition → trigger, behavior, duration in the system Set Caption
-- [ ] Every startup/shutdown sequence → step-by-step in the system Set Caption
-- [ ] Every electricity meter and its place in the metering hierarchy → Actor with Caption
-- [ ] Building metadata → address, type, year, area, floors, certification in building Set Caption
+- [ ] Every sensor from every measurement table → Point with full description
+- [ ] Every actuator (valve, damper, fan, pump) → Point with full description
+- [ ] Every alarm condition → in the relevant Point's description with type and priority
+- [ ] Every setpoint value → in the relevant Point's or Group's description with exact number
+- [ ] Every control curve → complete breakpoint table in the system Group description
+- [ ] Every control sequence → step-by-step in the system Group description
+- [ ] Every interlock → in the system Group description
+- [ ] Every fire protection sequence → per-zone in the system Group description
+- [ ] Every freeze protection detail → threshold, behavior, reset in the system Group description
+- [ ] Every defrost condition → trigger, behavior, duration in the system Group description
+- [ ] Every startup/shutdown sequence → step-by-step in the system Group description
+- [ ] Every electricity meter and its place in the metering hierarchy → Point with description
+- [ ] Building metadata → address, type, year, area, floors, certification in building Group description
 - [ ] System serving areas → which addresses/staircases each system serves
 - [ ] Shared sensors identified → created once at building level
 
-### Building (top-level Set)
-Caption must include: full name, full address, building type, year built/rebuilt, certifications, total area, number of floors, number of apartments/units if residential, all system IDs present, shared sensor list.
+### Building (top-level Group)
+Description must include: full name, full address, building type, year built/rebuilt, certifications, total area, number of floors, number of apartments/units if residential, all system IDs present, shared sensor list.
 
-### Systems as Sets
-Each control card = one system Set. Common systems:
-- Ventilation units (LB04, LB05, ...) — each AHU is its own Set
+### Systems as Groups
+Each control card = one system Group. Common systems:
+- Ventilation units (LB04, LB05, ...) — each AHU is its own Group
 - Heating system (VS01, VS02...) — radiator circuits, district heating
 - Cooling system (KB01...) — chilled water, cooling baffles
 - Domestic hot water (VV, VVC...) — DHW production and circulation
 - Garage ventilation — exhaust fans with CO/CO2 control
 - Alarm & control (AS201...) — central system for lighting, metering, elevator alarms
 
-**System Set Captions must be comprehensive.** They carry the entire operational logic. Write them as if the person reading them needs to understand the system without any other document. Include:
+**System Group descriptions must be comprehensive.** They carry the entire operational logic. Write them as if the person reading them needs to understand the system without any other document. Include:
 - Equipment cabinet ID
 - Exact serving area (addresses, staircases, zones)
 - Complete control strategy with sensor→actuator chain
@@ -124,16 +124,16 @@ Each control card = one system Set. Common systems:
 - Defrost conditions with exact triggers
 - Pump operating conditions (e.g., "runs when outdoor < +2°C")
 
-### Subsystem Sets
-- Duct branches (inlet, supply, exhaust, outlet) — with flow-direction Captions listing every component in order
+### Subsystem Groups
+- Duct branches (inlet, supply, exhaust, outlet) — with flow-direction descriptions listing every component in order
 - Distribution zones — when dampers serve specific staircases
-- VVX heat exchanger — dual-type (Set + Actor)
+- VVX heat exchanger — dual-type (Group + Point)
 
-### Actors — every monitored or controlled point
+### Points — every monitored or controlled component
 
-Every row in a measurement table becomes an Actor. Every actuator visible on a P&ID becomes an Actor.
+Every row in a measurement table becomes a Point. Every actuator visible on a P&ID becomes a Point.
 
-**Actor Captions must be self-contained.** Include:
+**Point descriptions must be self-contained.** Include:
 - What it measures or controls — full description, not abbreviation
 - Unit of measurement
 - Communication protocol (DUC, EcoG, FO01, HD1-HD5)
@@ -146,10 +146,10 @@ Every row in a measurement table becomes an Actor. Every actuator visible on a P
 - Any special behavior (e.g., freeze guard takeover, fire override)
 
 ### Shared sensors
-Outdoor temperature (UTE-GT31), outdoor lux (UTE-GX31) — create once at building level. Reference by name in system Captions that depend on them.
+Outdoor temperature (UTE-GT31), outdoor lux (UTE-GX31) — create once at building level. Reference by name in system descriptions that depend on them.
 
 ### Electricity metering hierarchy
-Each meter is an Actor. Capture the full hierarchy in Captions:
+Each meter is a Point. Capture the full hierarchy in descriptions:
 - Total building meter
 - Property common areas meter
 - Apartments meter
@@ -173,7 +173,7 @@ Use a short, ASCII-safe building prefix (e.g., `rio10`, `ct42`, `vv17c`).
 
 Write directly using the Write tool. Output: `{folder}/ONTOLOGY.ttl`
 
-### Caption writing rules
+### Description writing rules
 
 1. **Transcribe, don't summarize.** "Setpoint: per control curve" is useless. "Setpoint curve: outdoor +20→supply +18, +15→+18, +10→+19, +5→+19, 0→+19, -5→+19, -10→+20, -15→+20, -20→+20" is useful.
 
@@ -195,19 +195,19 @@ Write directly using the Write tool. Output: `{folder}/ONTOLOGY.ttl`
 @prefix sg: <https://opennekaise.com/SimpleGraph#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-bldg:BuildingName a sg:Set ;
-    sg:cnx bldg:LB04,
+bldg:BuildingName a sg:Group ;
+    sg:contains bldg:LB04,
         bldg:VS01,
         bldg:Metering ;
-    sg:hasActor bldg:UTE_GT31 ;
-    sg:hasCaption """[Full building identity, address, year,
+    sg:hasPoint bldg:UTE_GT31 ;
+    sg:hasDescription """[Full building identity, address, year,
 type, area, floors, all system IDs, shared sensors]"""^^xsd:string .
 
-bldg:LB04 a sg:Set ;
-    sg:cnx bldg:LB04_InletDuct,
+bldg:LB04 a sg:Group ;
+    sg:contains bldg:LB04_InletDuct,
         bldg:LB04_ExhaustDuct,
         bldg:LB04_VVX ;
-    sg:hasActor bldg:LB04_TF01,
+    sg:hasPoint bldg:LB04_TF01,
         bldg:LB04_FF01,
         bldg:LB04_SV21,
         bldg:LB04_P1,
@@ -215,7 +215,7 @@ bldg:LB04 a sg:Set ;
         bldg:LB04_GT11,
         bldg:LB04_GT81,
         bldg:LB04_EL ;
-    sg:hasCaption """[Complete system description:
+    sg:hasDescription """[Complete system description:
 cabinet ID, serving area, full control strategy,
 complete breakpoint table, full heating sequence,
 full startup sequence, full shutdown behavior,
@@ -227,12 +227,12 @@ pump operating conditions]"""^^xsd:string .
 
 ### Graph rules
 
-- **4 edge types only**: `rdf:type`, `sg:cnx` (Set→Set), `sg:hasActor` (Set→Actor), `sg:hasCaption` (any→Literal)
-- **No Actor-to-Actor edges.** Actors are always grouped through Sets.
-- **Actors = monitored or controlled points.** Things in measurement/alarm tables and on P&ID diagrams.
-- **Captions ARE the knowledge.** Not pointers to knowledge. Not summaries. The actual information.
-- **Sets provide hierarchy.** Building → System → Subsystem.
-- **Dual-type entities** allowed — VVX heat exchangers are commonly both Set and Actor.
+- **4 edge types only**: `rdf:type`, `sg:contains` (Group→Group), `sg:hasPoint` (Group→Point), `sg:hasDescription` (any→Literal)
+- **No Point-to-Point edges.** Points are always accessed through Groups.
+- **Points = monitored or controlled components.** Things in measurement/alarm tables and on P&ID diagrams.
+- **Descriptions ARE the knowledge.** Not pointers to knowledge. Not summaries. The actual information.
+- **Groups provide hierarchy.** Building → System → Subsystem.
+- **Dual-type entities** allowed — VVX heat exchangers are commonly both Group and Point.
 
 ### Common Brick types
 
@@ -270,7 +270,7 @@ After writing the TTL:
 
 1. **Verify completeness** — go back through each source document. Is there anything you read that isn't in the graph? If yes, add it.
 2. Tell the user:
-   - How many Sets and Actors were created
+   - How many Groups and Points were created
    - Which systems were modeled
    - What information was fully captured vs. partially captured
    - What's missing from the source material that would improve the graph (e.g., "no BMS point export — database IDs are placeholder xxx")
@@ -278,7 +278,7 @@ After writing the TTL:
 ## Reading P&ID diagrams
 
 - **Trace every flow path** — follow arrows and color bands to identify branches
-- **List every labeled component** — each label is a potential Actor
+- **List every labeled component** — each label is a potential Point
 - **Note positions** — before/after heat exchanger, before/after filter, which branch
 - **Find branch points** — where ducts split to serve zones (staircases, floors)
 - **Find fire zone boundaries** — smoke detectors and fire dampers mark zone edges
@@ -288,24 +288,24 @@ After writing the TTL:
 
 | Code | Swedish | Meaning | Creates |
 |---|---|---|---|
-| GT | Givare Temperatur | Temperature sensor | Actor |
-| GP | Givare Tryck | Pressure sensor | Actor |
-| GQ | Givare Kvalitet | CO2/air quality sensor | Actor |
-| GH | Givare Hygrometer | Humidity sensor | Actor |
-| GF | Givare Flöde | Flow sensor | Actor |
-| GX | Givare övrigt | Other sensor (smoke, lux) | Actor |
-| SV | Styrventil | Control valve | Actor |
-| ST | Ställdon/Spjäll | Damper actuator | Actor |
-| TF | Tilluftsfläkt | Supply fan | Actor |
-| FF | Frånluftsfläkt | Exhaust fan | Actor |
-| VVX | Värmeväxlare | Heat exchanger | Set + Actor |
-| P | Pump | Circulation pump | Actor |
-| DK | Brandspjäll | Fire damper | Actor |
-| LB | Luftbehandling | Air handling unit | Set |
-| VS | Värmesystem | Heating system | Set |
-| KB | Kylbatteri/system | Cooling system | Set |
-| VV/VVC | Varmvatten/cirkulation | DHW system | Set |
-| UTE | Utomhus | Outdoor (shared sensor) | Actor |
-| AS | Apparatskåp | Equipment cabinet | metadata in Caption |
+| GT | Givare Temperatur | Temperature sensor | Point |
+| GP | Givare Tryck | Pressure sensor | Point |
+| GQ | Givare Kvalitet | CO2/air quality sensor | Point |
+| GH | Givare Hygrometer | Humidity sensor | Point |
+| GF | Givare Flöde | Flow sensor | Point |
+| GX | Givare övrigt | Other sensor (smoke, lux) | Point |
+| SV | Styrventil | Control valve | Point |
+| ST | Ställdon/Spjäll | Damper actuator | Point |
+| TF | Tilluftsfläkt | Supply fan | Point |
+| FF | Frånluftsfläkt | Exhaust fan | Point |
+| VVX | Värmeväxlare | Heat exchanger | Group + Point |
+| P | Pump | Circulation pump | Point |
+| DK | Brandspjäll | Fire damper | Point |
+| LB | Luftbehandling | Air handling unit | Group |
+| VS | Värmesystem | Heating system | Group |
+| KB | Kylbatteri/system | Cooling system | Group |
+| VV/VVC | Varmvatten/cirkulation | DHW system | Group |
+| UTE | Utomhus | Outdoor (shared sensor) | Point |
+| AS | Apparatskåp | Equipment cabinet | metadata in description |
 
 Number suffixes: GT**11** = subsystem 1, GT**41** = subsystem 4. System prefixes: **LB04**-GT11 = GT11 in unit LB04.
