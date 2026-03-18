@@ -1,13 +1,13 @@
 ---
 name: update-ontology
-description: Update the building's KebGraph ontology with confirmed facts from conversation or daily sweep. Reads the existing ONTOLOGY.ttl, applies changes, writes the full file back. Only persists verified building facts — never speculation or plans.
+description: Update the building's ontology with confirmed facts from conversation or daily sweep. Reads the existing ONTOLOGY.ttl, applies changes, writes the full file back. Only persists verified building facts — never speculation or plans.
 ---
 
 # Update Ontology
 
 ## Purpose
 
-Keep the building's KebGraph ontology current as a living information representation. The ontology is the structured source of truth for the building — equipment, sensors, setpoints, control sequences, topology. When the agent learns a confirmed building fact, it belongs in the ontology.
+Keep the building's ontology current as a living information representation. The ontology is the structured source of truth for the building — equipment, sensors, setpoints, control sequences, topology. When the agent learns a confirmed building fact, it belongs in the ontology.
 
 ## When to run
 
@@ -71,20 +71,20 @@ If the answer is no, do not update.
 ## What changes look like
 
 ### Caption updates (most common)
-A setpoint changed, an alarm was added, an operational note was confirmed. Find the relevant Actor or Set and rewrite its `keb:hasCaption` with the updated information. Keep all existing information in the Caption that is still valid — only change what actually changed.
+A setpoint changed, an alarm was added, an operational note was confirmed. Find the relevant Actor or Set and rewrite its `sg:hasCaption` with the updated information. Keep all existing information in the Caption that is still valid — only change what actually changed.
 
 ### New Actors
-A sensor or actuator was installed. Add it as a new `keb:Actor` with the correct Brick type, a full Caption, and a `keb:hasActor` edge from its parent Set.
+A sensor or actuator was installed. Add it as a new `sg:Actor` with the correct Brick type, a full Caption, and a `sg:hasActor` edge from its parent Set.
 
 ### New Sets
-A new system or subsystem was commissioned. Add it as a `keb:Set` with a comprehensive Caption, connected to its parent via `keb:cnx`.
+A new system or subsystem was commissioned. Add it as a `sg:Set` with a comprehensive Caption, connected to its parent via `sg:cnx`.
 
 ### Removals
 Equipment was decommissioned. Remove the Actor or Set entirely. Do not leave stubs or "decommissioned" markers — if it's gone, it's gone from the graph.
 
-## KebGraph rules (must follow)
+## Graph rules (must follow)
 
-- **4 edge types only**: `rdf:type`, `keb:cnx` (Set to Set), `keb:hasActor` (Set to Actor), `keb:hasCaption` (any to Literal)
+- **4 edge types only**: `rdf:type`, `sg:cnx` (Set to Set), `sg:hasActor` (Set to Actor), `sg:hasCaption` (any to Literal)
 - **No Actor-to-Actor edges.** Actors are grouped through Sets.
 - **Captions ARE the knowledge.** Not pointers. Not summaries. The actual information with exact numbers.
 - **Sets provide hierarchy.** Building, System, Subsystem.

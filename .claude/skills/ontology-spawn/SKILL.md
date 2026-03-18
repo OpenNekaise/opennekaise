@@ -1,11 +1,11 @@
 ---
 name: ontology-spawn
-description: Convert a folder of heterogeneous documents (PDFs, images, markdown, CSV, TTL, spreadsheets, anything) into a KebGraph semantic model (.ttl). Point it at a folder, it reads everything, extracts building knowledge, and writes a Turtle RDF file. Use when the user wants to create a knowledge graph from raw building documents.
+description: Convert a folder of heterogeneous documents (PDFs, images, markdown, CSV, TTL, spreadsheets, anything) into a building semantic model (.ttl). Point it at a folder, it reads everything, extracts building knowledge, and writes a Turtle RDF file. Use when the user wants to create a knowledge graph from raw building documents.
 ---
 
 # Ontology Spawn
 
-Turn a folder of raw documents into a KebGraph semantic model.
+Turn a folder of raw documents into a building semantic model.
 
 ## The principle
 
@@ -20,7 +20,7 @@ If you leave something out, it's gone. If you summarize instead of transcribing,
 1. User gives you a folder path
 2. You read every file in it — PDFs, images, markdown, CSV, TTL, text, whatever is there
 3. You extract ALL building knowledge into Sets, Actors, and Captions
-4. You write a KebGraph TTL file in the same folder
+4. You write a building graph TTL file in the same folder
 5. The original documents become disposable — the graph is now the source of truth
 
 The LLM (you) is the parser. No format-specific tooling needed — just read and understand.
@@ -161,7 +161,7 @@ Each meter is an Actor. Capture the full hierarchy in Captions:
 ## Step 4: Build the namespace
 
 ```
-@prefix keb: <https://opennekaise.com/KebGraph#> .
+@prefix sg: <https://opennekaise.com/SimpleGraph#> .
 @prefix brick: <https://brickschema.org/schema/Brick#> .
 @prefix bldg: <https://opennekaise.com/{BuildingName}#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
@@ -192,22 +192,22 @@ Write directly using the Write tool. Output: `{folder}/ONTOLOGY.ttl`
 ```turtle
 @prefix brick: <https://brickschema.org/schema/Brick#> .
 @prefix bldg: <https://opennekaise.com/BuildingName#> .
-@prefix keb: <https://opennekaise.com/KebGraph#> .
+@prefix sg: <https://opennekaise.com/SimpleGraph#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-bldg:BuildingName a keb:Set ;
-    keb:cnx bldg:LB04,
+bldg:BuildingName a sg:Set ;
+    sg:cnx bldg:LB04,
         bldg:VS01,
         bldg:Metering ;
-    keb:hasActor bldg:UTE_GT31 ;
-    keb:hasCaption """[Full building identity, address, year,
+    sg:hasActor bldg:UTE_GT31 ;
+    sg:hasCaption """[Full building identity, address, year,
 type, area, floors, all system IDs, shared sensors]"""^^xsd:string .
 
-bldg:LB04 a keb:Set ;
-    keb:cnx bldg:LB04_InletDuct,
+bldg:LB04 a sg:Set ;
+    sg:cnx bldg:LB04_InletDuct,
         bldg:LB04_ExhaustDuct,
         bldg:LB04_VVX ;
-    keb:hasActor bldg:LB04_TF01,
+    sg:hasActor bldg:LB04_TF01,
         bldg:LB04_FF01,
         bldg:LB04_SV21,
         bldg:LB04_P1,
@@ -215,7 +215,7 @@ bldg:LB04 a keb:Set ;
         bldg:LB04_GT11,
         bldg:LB04_GT81,
         bldg:LB04_EL ;
-    keb:hasCaption """[Complete system description:
+    sg:hasCaption """[Complete system description:
 cabinet ID, serving area, full control strategy,
 complete breakpoint table, full heating sequence,
 full startup sequence, full shutdown behavior,
@@ -225,9 +225,9 @@ defrost with trigger and duration,
 pump operating conditions]"""^^xsd:string .
 ```
 
-### KebGraph rules
+### Graph rules
 
-- **4 edge types only**: `rdf:type`, `keb:cnx` (Set→Set), `keb:hasActor` (Set→Actor), `keb:hasCaption` (any→Literal)
+- **4 edge types only**: `rdf:type`, `sg:cnx` (Set→Set), `sg:hasActor` (Set→Actor), `sg:hasCaption` (any→Literal)
 - **No Actor-to-Actor edges.** Actors are always grouped through Sets.
 - **Actors = monitored or controlled points.** Things in measurement/alarm tables and on P&ID diagrams.
 - **Captions ARE the knowledge.** Not pointers to knowledge. Not summaries. The actual information.
