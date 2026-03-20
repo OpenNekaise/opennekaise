@@ -58,17 +58,16 @@ interface VolumeMount {
 
 /**
  * Normalize a folder name to a plain ASCII slug for fuzzy matching.
- * Converts common Scandinavian/German characters so that a registered
- * folder "virkesvaegen-17c" matches a home/ directory "virkesvägen-17c".
+ * Uses Unicode NFD decomposition to strip diacritics, so that
+ * "axelsdgården-42" and "axelsdgarden-42" both resolve to the same slug.
+ * Also handles ligatures (æ→ae, ø→o, œ→oe) that NFD doesn't decompose.
  */
 function toAsciiSlug(name: string): string {
   return name
     .toLowerCase()
-    .replace(/[äæ]/g, 'ae')
-    .replace(/[öøœ]/g, 'oe')
-    .replace(/[ü]/g, 'ue')
-    .replace(/[å]/g, 'aa')
-    .replace(/[ñ]/g, 'n')
+    .replace(/æ/g, 'ae')
+    .replace(/ø/g, 'o')
+    .replace(/œ/g, 'oe')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '');
 }
