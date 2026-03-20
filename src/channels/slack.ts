@@ -101,20 +101,31 @@ export class SlackChannel implements Channel {
       const groups = this.opts.registeredGroups();
       if (!groups[jid]) return;
 
-      const isBotMessage =
-        !!msg.bot_id || msg.user === this.botUserId;
+      // Distinguish OUR bot output from OTHER bots (A2A).
+      // is_from_me: true only for our own bot's messages (used to filter self-loops).
+      // is_bot_message: true for any bot (ours or external), for metadata/display.
+      const isFromMe = msg.user === this.botUserId;
+      const isOtherBot = !isFromMe && !!msg.bot_id;
+      const isBotMessage = isFromMe || isOtherBot;
       const threadTs = (msg as { thread_ts?: string }).thread_ts;
 
       // Track latest user thread context for this channel.
       // For in-channel messages, this sets a new thread anchored at msg.ts.
       // For thread replies, this keeps using the parent thread_ts.
-      if (!isBotMessage) {
+      if (!isFromMe) {
         this.threadContext.set(jid, threadTs || msg.ts);
       }
 
       let senderName: string;
-      if (isBotMessage) {
+      if (isFromMe) {
         senderName = ASSISTANT_NAME;
+      } else if (isOtherBot) {
+        // Resolve other bot's display name from the message username field,
+        // or fall back to the bot_id.
+        senderName =
+          (msg as BotMessageEvent).username ||
+          msg.bot_id ||
+          'unknown-bot';
       } else {
         senderName =
           (msg.user ? await this.resolveUserName(msg.user) : undefined) ||
@@ -126,7 +137,7 @@ export class SlackChannel implements Channel {
       // Slack encodes @mentions as <@U12345>, which won't match TRIGGER_PATTERN
       // (e.g., ^@<ASSISTANT_NAME>\b), so we prepend the trigger when the bot is @mentioned.
       let content = msg.text;
-      if (this.botUserId && !isBotMessage) {
+      if (this.botUserId && !isFromMe) {
         const mentionPattern = `<@${this.botUserId}>`;
         if (content.includes(mentionPattern) && !TRIGGER_PATTERN.test(content)) {
           content = `@${ASSISTANT_NAME} ${content}`;
@@ -140,7 +151,7 @@ export class SlackChannel implements Channel {
         sender_name: senderName,
         content,
         timestamp,
-        is_from_me: isBotMessage,
+        is_from_me: isFromMe,
         is_bot_message: isBotMessage,
       });
     });
