@@ -32,6 +32,9 @@ home/*
 # IDE
 .idea/
 .vscode/
+# Claude Code (track skills, ignore local state)
+.claude/projects/
+.claude/settings.local.json
 
 # Skills system (local per-installation state)
 .opennekaise/
