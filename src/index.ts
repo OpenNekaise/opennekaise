@@ -5,6 +5,7 @@ import {
   ALLOWED_DM_JIDS,
   ADMIN_DM_JID,
   ASSISTANT_NAME,
+  CLAUDE_MODEL,
   HOME_DATA_DIR,
   IDLE_TIMEOUT,
   MAIN_GROUP_FOLDER,
@@ -537,6 +538,7 @@ async function runAgent(
         isMain,
         isDm,
         assistantName: ASSISTANT_NAME,
+        model: CLAUDE_MODEL,
       },
       (proc, containerName) =>
         queue.registerProcess(chatJid, proc, containerName, group.folder),

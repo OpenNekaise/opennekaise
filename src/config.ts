@@ -12,6 +12,7 @@ const envConfig = readEnvFile([
   'ADMIN_DM_JID',
   'ALLOWED_DM_JIDS',
   'SLACK_ONLY',
+  'CLAUDE_MODEL',
 ]);
 
 export const ASSISTANT_NAME =
@@ -85,3 +86,7 @@ export const TIMEZONE =
 // from .env via readEnvFile() to keep secrets off process.env.
 export const SLACK_ONLY =
   (process.env.SLACK_ONLY || envConfig.SLACK_ONLY) === 'true';
+
+// Claude model for the agent (e.g., claude-sonnet-4-6, claude-opus-4-6)
+export const CLAUDE_MODEL =
+  process.env.CLAUDE_MODEL || envConfig.CLAUDE_MODEL || undefined;

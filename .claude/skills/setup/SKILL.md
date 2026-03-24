@@ -55,6 +55,30 @@ Ensure one auth method exists in `.env`:
 
 If missing, ask user which method they want and guide them to add it. Do not ask users to paste secrets in chat if avoidable.
 
+## 4b. Claude Model Selection
+
+Ask the user which Claude model to use for the agent. Present the options:
+
+| Model | ID | Notes |
+|-------|-----|-------|
+| Claude Opus 4.6 | `claude-opus-4-6` | Most capable, higher cost |
+| Claude Sonnet 4.6 | `claude-sonnet-4-6` | Balanced performance and cost |
+| Claude Haiku 4.5 | `claude-haiku-4-5-20251001` | Fastest, lowest cost |
+
+Default: `claude-sonnet-4-6` (SDK default if not set).
+
+Write the chosen model to `.env`:
+
+```
+CLAUDE_MODEL=claude-opus-4-6
+```
+
+Then sync to container env:
+
+```bash
+cp .env data/env/env
+```
+
 ## 5. Slack Configuration (Default Channel)
 
 Collect or confirm:

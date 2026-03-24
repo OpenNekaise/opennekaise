@@ -7,6 +7,7 @@ import fs from 'fs';
 import path from 'path';
 
 import {
+  CLAUDE_MODEL,
   CONTAINER_IMAGE,
   CONTAINER_MAX_OUTPUT_SIZE,
   CONTAINER_TIMEOUT,
@@ -40,6 +41,7 @@ export interface ContainerInput {
   isDm?: boolean;
   isScheduledTask?: boolean;
   assistantName?: string;
+  model?: string;
   secrets?: Record<string, string>;
 }
 
