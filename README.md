@@ -106,6 +106,11 @@ Skills are markdown files that teach the agent how to do specific things — see
 
 Skills are directories, not just markdown. A skill folder contains a `SKILL.md` with instructions, and can include additional markdown files, scripts, and reference materials — Claude loads them progressively as needed. Drop a folder with a `SKILL.md` into `container/skills/` and it's available to every agent on the next run.
 
+## Reading Materials
+
+- [LLM API vs LLM Runtime: A Paradigm Shift in LLM Agent Development](https://www.linkedin.com/pulse/llm-api-vs-runtime-paradigm-shift-agent-development-zeng-peng-eadaf) — Gen 1 (function calling + JSON) vs Gen 2 (LLM as runtime with filesystem and bash) approaches to building agents.
+- [How to Make a Nekaise Agent Live in Slack](https://www.linkedin.com/pulse/how-make-nekaise-agent-live-slack-zeng-peng-9ffrf) — Step-by-step guide to deploying Nekaise Agent in Slack using Claude Code.
+
 ## Acknowledgements
 
 OpenNekaise is forked from [NanoClaw](https://github.com/qwibitai/nanoclaw) and has since been redesigned for the built environment — with ontology-grounded reasoning, per-building isolation, and structured building data at its core. Thanks to the NanoClaw maintainers for the lightweight starting point. It is hard to say no to [pure Claude Agent SDK-based AI agents](https://platform.claude.com/docs/en/agent-sdk/overview).
