@@ -1,0 +1,4 @@
+rdflib>=7.0
+brickschema>=0.7.9
+buildingmotif>=0.4.0
+pyshacl>=0.30
