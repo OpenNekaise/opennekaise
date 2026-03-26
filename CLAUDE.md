@@ -20,7 +20,8 @@ Single Node.js process that connects to chat channels, routes messages to Claude
 | `src/db.ts` | SQLite operations |
 | `groups/{name}/CLAUDE.md` | Per-group memory (isolated) |
 | `container/skills/agent-browser.md` | Browser automation tool (available to all agents via Bash) |
-| `container/skills/ontology/` | RDF/Brick/223P ontology parsing, SPARQL queries, model creation |
+| `container/skills/know-223p/` | ASHRAE 223P topology ontology reference and RDF tooling |
+| `container/skills/know-brick/` | Brick Schema classification ontology reference and RDF tooling |
 | `container/skills/simple-graph/` | Simple Brick-based building semantic models (Points, Groups, Descriptions) |
 
 ## Skills

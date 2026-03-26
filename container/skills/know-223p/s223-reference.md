@@ -49,6 +49,14 @@ Connectable
 └── DomainSpace (spatial zone for a building service domain)
 ```
 
+### Function (control logic / computed values — NOT a Connectable)
+```
+Function           # has hasInput/hasOutput → Property
+                   # Must have ≥1 hasInput or hasOutput
+                   # A Property can be output of at most 1 Function
+                   # Maps to CDL Blocks in ASHRAE 231P
+```
+
 ### ConnectionPoint (ports on equipment)
 ```
 ConnectionPoint
@@ -95,15 +103,17 @@ ZoneGroup         # groups Zones
 | `s223:cnx` | Connectable ↔ ConnectionPoint ↔ Connection | **The one relation you assert** — everything else is inferred |
 | `s223:contains` | Equipment/Zone → Equipment/DomainSpace | Composition hierarchy |
 | `s223:hasMedium` | ConnectionPoint/Connection → Medium | What substance flows |
-| `s223:hasProperty` | Equipment → Property | Telemetry association |
-| `s223:observes` | Sensor → ObservableProperty | What a sensor reads |
-| `s223:actuates` | Actuator → Equipment | What an actuator controls |
+| `s223:hasProperty` | Concept → Property | General property association (telemetry, setpoints) |
+| `s223:observes` | Sensor → ObservableProperty (exactly 1) | What a sensor reads |
+| `s223:actuates` | Actuator → Equipment (0+) | What equipment an actuator controls |
+| `s223:actuatedByProperty` | Actuator → ActuatableProperty (1+); Equipment → ActuatableProperty (0+) | Command point association. Actuators require ≥1. Equipment uses it optionally. |
+| `s223:hasInput` | Function → Property (0+) | Control logic input. Function must have ≥1 hasInput or hasOutput. |
+| `s223:hasOutput` | Function → Property (0+) | Control logic output. A Property can be hasOutput of at most 1 Function. |
 | `s223:mapsTo` | ConnectionPoint → ConnectionPoint | Maps outer port to inner port (containment) |
 | `s223:hasDomain` | DomainSpace/Zone → Domain | Building service domain |
 | `s223:encloses` | PhysicalSpace → DomainSpace | Space-to-domain mapping |
 | `s223:hasRole` | ConnectionPoint → Role | Functional role (cooling, heating, supply, return) |
 | `s223:hasAspect` | Property → Aspect | Contextual qualifier (delta, setpoint) |
-| `s223:hasInput` / `s223:hasOutput` | FunctionBlock → Property | Control logic I/O |
 
 ### Inferred Predicates (never assert these — they come from SHACL rules)
 - `s223:connected`, `s223:connectedTo`, `s223:connectedFrom`
