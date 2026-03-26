@@ -1,59 +1,88 @@
 ---
 name: know-223p
-description: ASHRAE Standard 223P building topology ontology. Connection patterns, equipment ports, medium flow, properties, functions, SPARQL queries, and RDF/TTL modeling. Use when working with 223P, s223, connection topology, ConnectionPoint, cnx, medium flow, Function, ActuatableProperty, ObservableProperty, or .ttl files using 223P classes.
+description: authoritative guidance for ashrae standard 223p and the open223 ecosystem. use when an agent needs to explain, model, review, query, validate, or map 223p concepts such as connectables, connection points, properties, media, functions, qudt units, brick or realestatecore annotations, inference, validation, or rdf/turtle/sparql patterns for building automation and semantic building data.
 ---
+# Know 223P
 
-# ASHRAE Standard 223P
+Use `s223-reference.md` as the source of truth for ontology concepts, modeling rules, examples, and public-source caveats. Keep this file compact and route to the reference file when the task is not trivial.
 
-Work with 223P topology models: equipment connections, port-based modeling, medium flow, properties, and control functions.
+## Start here
 
-## Quick Start
+1. Identify the user's mode:
+   - explain the ontology or teach concepts
+   - write or review turtle/rdf/shacl/sparql
+   - model a building system or space hierarchy
+   - attach telemetry or bacnet references
+   - layer brick or realestatecore on top of 223p
+   - debug inference or validation issues
+2. Read the matching sections in `s223-reference.md`.
+3. Answer using exact 223 vocabulary first, then add a minimal example when useful.
 
-The `ontology_tool.py` script handles all RDF operations. It self-bootstraps (installs `rdflib` on first use).
+## Non-negotiable stance
 
-```bash
-TOOL="${CLAUDE_SKILL_DIR}/scripts/ontology_tool.py"
-python3 "$TOOL" <command> [args...]
-```
+- Treat 223p as an evolving proposed standard unless the user supplies a newer normative source.
+- Treat `docs.open223.info`, `defs.open223.info`, `models.open223.info`, `query.open223.info`, and `open223.info` as the best public implementation aids, not as the final normative ashrae text.
+- Prefer exact ontology names and relations over informal synonyms.
+- Distinguish asserted triples from inferred triples.
 
-### Core Commands
+## What to read in the reference
 
-```bash
-# Parse and summarize an RDF file
-python3 "$TOOL" parse model.ttl
+- sections 1-3 for purpose, status, and semantic web stack
+- sections 4-5 for ontology structure and topology
+- section 6 for properties, sensors, and telemetry
+- section 7 for media and mixtures
+- section 8 for inference and validation
+- section 9 for qudt, brick, and realestatecore interop
+- sections 10-11 for modeling workflow and example patterns
+- section 12 for common mistakes
+- sections 13-14 for source priority and public resources
 
-# Run a SPARQL query
-python3 "$TOOL" query model.ttl "SELECT ?s ?type WHERE { ?s a ?type } LIMIT 20"
+## Rules the agent must preserve
 
-# Describe a specific entity (all properties and relationships)
-python3 "$TOOL" describe model.ttl "http://example.org/building#AHU1"
+- Model connectivity with `Connectable`, `ConnectionPoint`, and `Connection`; do not collapse real topology into a single vague edge.
+- Prefer asserting `s223:cnx` and let inference derive higher-level connection relations when appropriate.
+- Put media on `ConnectionPoint`s and `Connection`s, and keep them compatible.
+- Use `s223:hasProperty` to associate properties to concepts or connection points.
+- Treat 223 `Property` instances as the source and context of a measurement, command, or characteristic, not as a detached physical phenomenon.
+- Model a multi-sensor device as `Equipment` containing multiple `Sensor` instances.
+- Model derived or computed values with `s223:Function` or `FunctionBlock` patterns, not as directly observed properties.
+- Use `qudt:hasQuantityKind` and `qudt:hasUnit` for quantifiable properties.
+- Use brick and realestatecore as additive annotations, not replacements for 223 topology.
+- Do not place time-series telemetry inside the 223 graph; link out using external references.
 
-# List all classes used in a model
-python3 "$TOOL" list-classes model.ttl
+## Default output shape
 
-# List instances, optionally filtered by class
-python3 "$TOOL" list-instances model.ttl
-python3 "$TOOL" list-instances model.ttl "http://data.ashrae.org/standard223#Equipment"
+When helping with 223p, usually provide:
 
-# Show equipment connectivity (cnx chains)
-python3 "$TOOL" topology model.ttl
+1. the modeling decision or explanation
+2. the exact 223 concepts and relations involved
+3. a small turtle or sparql example if useful
+4. the validation or inference consequences
+5. interop notes if qudt, brick, rec, or bacnet are relevant
 
-# Download and cache 223P ontology for offline use
-python3 "$TOOL" fetch-223p
-```
+## If writing or reviewing turtle
 
-## Reference Material
+- Declare prefixes explicitly.
+- Keep instance names readable and role-based.
+- Prefer minimal valid examples over huge graphs.
+- Call out what is asserted now versus what should appear after inference.
+- Flag likely mistakes such as missing media, missing connection points, incorrect sensor-property pairing, or misuse of `hasValue`.
 
-For detailed class hierarchies, predicates, enumerations, and SPARQL patterns, read:
+## If the user asks for a quick explanation
 
-- `${CLAUDE_SKILL_DIR}/s223-reference.md` — full 223P reference
+Start with this mental model:
 
-Read this only when you need specific class names, predicate details, or query patterns.
+- 223p describes what building things exist, how they connect, what spaces they affect, what properties they expose, and how those properties are measured, commanded, or derived.
+- Its power comes from rdf graphs plus shacl validation and inference, qudt units, and optional interop with brick and realestatecore.
 
-## When to Use This Skill
+## Read next
 
-- User asks about building topology, connection patterns, or medium flow
-- Working with 223P models or `.ttl` files that use `s223:` namespace
-- Creating or querying port-based equipment models
-- Mapping control functions (`s223:Function`) to properties
-- Modeling how air, water, or electricity flows through equipment
+Read `s223-reference.md` before answering any non-trivial 223p question. Treat it as the deep reference for ontology structure, patterns, pitfalls, and public-source status.
+
+## Example requests
+
+- explain the difference between `PhysicalSpace`, `DomainSpace`, `Zone`, and `System`
+- model a vav with a damper, discharge temperature sensor, and zone in 223p turtle
+- debug a medium or connection-point validation error
+- attach bacnet telemetry to a 223 property
+- layer brick points and equipment onto a 223 model
