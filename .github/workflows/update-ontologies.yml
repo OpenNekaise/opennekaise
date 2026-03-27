@@ -1,0 +1,36 @@
+name: Update ontology files
+
+on:
+  schedule:
+    - cron: '0 6 * * 1' # Every Monday at 06:00 UTC
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download latest Brick.ttl
+        run: curl -sL -o container/skills/know-brick/Brick.ttl "https://github.com/BrickSchema/Brick/releases/download/nightly/Brick.ttl"
+
+      - name: Download latest 223p.ttl
+        run: curl -sL -o container/skills/know-223p/223p.ttl "https://open223.info/223p.ttl"
+
+      - name: Check for changes
+        id: diff
+        run: |
+          if git diff --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create PR
+        if: steps.diff.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: 'Update ontology files (Brick.ttl, 223p.ttl)'
+          title: 'Update ontology files'
+          body: 'Automated weekly update of Brick.ttl and 223p.ttl from upstream sources.'
+          branch: update-ontologies
