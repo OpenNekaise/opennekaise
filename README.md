@@ -108,7 +108,7 @@ Skills are directories, not just markdown. A skill folder contains a `SKILL.md` 
 
 ## Reading Materials
 
-- [LLM API vs LLM Runtime: A Paradigm Shift in LLM Agent Development](https://www.linkedin.com/pulse/llm-api-vs-runtime-paradigm-shift-agent-development-zeng-peng-eadaf) — Gen 1 (function calling + JSON) vs Gen 2 (LLM as runtime with filesystem and bash) approaches to building agents.
+- [LLM API vs LLM Runtime: A Paradigm Shift in LLM Agent Development](https://www.linkedin.com/pulse/llm-api-vs-runtime-paradigm-shift-agent-development-zeng-peng-ukpcf) — Gen 1 (function calling + JSON) vs Gen 2 (LLM as runtime with filesystem and bash) approaches to building agents.
 - [How to Make a Nekaise Agent Live in Slack](https://www.linkedin.com/pulse/how-make-nekaise-agent-live-slack-zeng-peng-9ffrf) — Step-by-step guide to deploying Nekaise Agent in Slack using Claude Code.
 
 ## Acknowledgements
