@@ -166,6 +166,28 @@ describe('stripInternalTags', () => {
   it('returns empty string when text is only internal tags', () => {
     expect(stripInternalTags('<internal>only this</internal>')).toBe('');
   });
+
+  it('strips unclosed <internal> tag and everything after it', () => {
+    expect(stripInternalTags('visible <internal>leaked text')).toBe('visible');
+  });
+
+  it('strips orphan </internal> tags', () => {
+    expect(
+      stripInternalTags('leaked text\n</internal>'),
+    ).toBe('leaked text');
+  });
+
+  it('strips text before orphan </internal> when all content is internal', () => {
+    expect(
+      stripInternalTags('No updates needed.\n</internal>'),
+    ).toBe('No updates needed.');
+  });
+
+  it('handles mixed matched and orphan tags', () => {
+    expect(
+      stripInternalTags('<internal>hidden</internal> visible </internal>'),
+    ).toBe('visible');
+  });
 });
 
 describe('formatOutbound', () => {

@@ -18,7 +18,13 @@ export function formatMessages(messages: NewMessage[]): string {
 }
 
 export function stripInternalTags(text: string): string {
-  return text.replace(/<internal>[\s\S]*?<\/internal>/g, '').trim();
+  // Strip matched <internal>...</internal> pairs
+  let result = text.replace(/<internal>[\s\S]*?<\/internal>/g, '');
+  // Strip unclosed <internal> tag and everything after it
+  result = result.replace(/<internal>[\s\S]*/g, '');
+  // Strip orphan </internal> tags
+  result = result.replace(/<\/internal>/g, '');
+  return result.trim();
 }
 
 /**

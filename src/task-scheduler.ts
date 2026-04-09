@@ -26,6 +26,7 @@ import {
 import { GroupQueue } from './group-queue.js';
 import { resolveGroupFolderPath } from './group-folder.js';
 import { logger } from './logger.js';
+import { formatOutbound } from './router.js';
 import { RegisteredGroup, ScheduledTask } from './types.js';
 
 export interface SchedulerDependencies {
@@ -156,8 +157,14 @@ async function runTask(
       async (streamedOutput: ContainerOutput) => {
         if (streamedOutput.result) {
           result = streamedOutput.result;
-          // Forward result to user (sendMessage handles formatting)
-          await deps.sendMessage(task.chat_jid, streamedOutput.result);
+          // Silent tasks (e.g. daily memory/ontology sweep) never send output to the user
+          const isSilent = task.prompt.includes('MEMORY AND ONTOLOGY SWEEP');
+          if (!isSilent) {
+            const visible = formatOutbound(streamedOutput.result);
+            if (visible) {
+              await deps.sendMessage(task.chat_jid, visible);
+            }
+          }
           scheduleClose();
         }
         if (streamedOutput.status === 'success') {

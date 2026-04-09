@@ -47,7 +47,7 @@ import {
 import { GroupQueue } from './group-queue.js';
 import { resolveGroupFolderPath } from './group-folder.js';
 import { startIpcWatcher } from './ipc.js';
-import { extractFileRefs, findChannel, formatMessages, formatOutbound } from './router.js';
+import { extractFileRefs, findChannel, formatMessages, formatOutbound, stripInternalTags } from './router.js';
 import { startSchedulerLoop } from './task-scheduler.js';
 import { Channel, NewMessage, RegisteredGroup } from './types.js';
 import { readEnvFile } from './env.js';
@@ -410,8 +410,8 @@ async function processGroupMessages(chatJid: string): Promise<boolean> {
         typeof result.result === 'string'
           ? result.result
           : JSON.stringify(result.result);
-      // Strip <internal>...</internal> blocks — agent uses these for internal reasoning
-      const stripped = raw.replace(/<internal>[\s\S]*?<\/internal>/g, '').trim();
+      // Strip <internal> blocks — agent uses these for internal reasoning
+      const stripped = stripInternalTags(raw);
       logger.info({ group: group.name }, `Agent output: ${raw.slice(0, 200)}`);
 
       // Extract <file> tags and upload referenced files
