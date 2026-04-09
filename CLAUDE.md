@@ -18,7 +18,11 @@ Single Node.js process that connects to chat channels, routes messages to Claude
 | `src/container-runner.ts` | Spawns agent containers with mounts |
 | `src/task-scheduler.ts` | Runs scheduled tasks |
 | `src/db.ts` | SQLite operations |
-| `groups/{name}/CLAUDE.md` | Per-group memory (isolated) |
+| `groups/global/SOUL.md` | Agent character/identity (shared by all building agents) |
+| `groups/main/SOUL.md` | Admin agent character/identity |
+| `groups/global/CLAUDE.md` | Shared operational rules for all building agents |
+| `groups/main/CLAUDE.md` | Admin-specific operational rules |
+| `groups/{name}/CLAUDE.md` | Per-group instructions (isolated) |
 | `container/skills/agent-browser.md` | Browser automation tool (available to all agents via Bash) |
 | `container/skills/know-223p/` | ASHRAE 223P topology ontology reference and RDF tooling |
 | `container/skills/know-brick/` | Brick Schema classification ontology reference and RDF tooling |

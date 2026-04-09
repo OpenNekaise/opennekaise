@@ -392,12 +392,25 @@ async function runQuery(
   let messageCount = 0;
   let resultCount = 0;
 
-  // Load global CLAUDE.md as additional system context (shared across all groups)
+  // Load SOUL.md (identity/values) and CLAUDE.md (operational rules) as system context.
+  // SOUL.md comes first — who you are frames how you operate.
+  // Main agent reads from /workspace/group/, non-main from /workspace/global/.
+  const soulMdPath = containerInput.isMain
+    ? '/workspace/group/SOUL.md'
+    : '/workspace/global/SOUL.md';
+  let soulMd: string | undefined;
+  if (fs.existsSync(soulMdPath)) {
+    soulMd = fs.readFileSync(soulMdPath, 'utf-8');
+  }
+
   const globalClaudeMdPath = '/workspace/global/CLAUDE.md';
   let globalClaudeMd: string | undefined;
   if (!containerInput.isMain && fs.existsSync(globalClaudeMdPath)) {
     globalClaudeMd = fs.readFileSync(globalClaudeMdPath, 'utf-8');
   }
+
+  // Combine: SOUL.md first, then CLAUDE.md
+  const systemAppend = [soulMd, globalClaudeMd].filter(Boolean).join('\n\n');
 
   // Discover additional directories mounted at /workspace/extra/*
   // These are passed to the SDK so their CLAUDE.md files are loaded automatically
@@ -423,8 +436,8 @@ async function runQuery(
       additionalDirectories: extraDirs.length > 0 ? extraDirs : undefined,
       resume: sessionId,
       resumeSessionAt: resumeAt,
-      systemPrompt: globalClaudeMd
-        ? { type: 'preset' as const, preset: 'claude_code' as const, append: globalClaudeMd }
+      systemPrompt: systemAppend
+        ? { type: 'preset' as const, preset: 'claude_code' as const, append: systemAppend }
         : undefined,
       allowedTools: [
         'Bash',

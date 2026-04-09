@@ -81,13 +81,32 @@ The agent's context is layered — each layer adds more specificity:
 
 | Layer | File | What it does |
 |---|---|---|
-| Global prompt | `groups/global/CLAUDE.md` | Shared rules for all building agents — verify first, stay concise, use building data |
-| Admin prompt | `groups/main/CLAUDE.md` | Extra context and tools for the admin channel only |
+| Soul | `groups/global/SOUL.md` | Who the agent is — character, voice, values |
+| Admin soul | `groups/main/SOUL.md` | Admin variant — same core plus platform steward identity |
+| Global rules | `groups/global/CLAUDE.md` | Shared operational rules — verify first, stay concise, use building data |
+| Admin rules | `groups/main/CLAUDE.md` | Extra context and tools for the admin channel only |
 | Building prompt | `groups/<folder>/CLAUDE.md` | Building-specific instructions and quirks |
 | Memory | `groups/<folder>/MEMORY.md` | Everything the agent has learned from past conversations |
 | Ontology | `groups/<folder>/ONTOLOGY.ttl` | Structured building truth — equipment, sensors, setpoints, control sequences, topology |
 
 Sessions give the agent short-term continuity within a conversation. Memory and ontology are the long-term layers — they survive session clears, restarts, and prompt updates.
+
+## SOUL.md
+
+What makes an agent feel like a colleague instead of a tool? Not the model, not the prompt engineering, not the temperature setting. It's whether the agent knows who it is.
+
+`SOUL.md` is the agent's character — who it is, how it talks, what it values. It sits apart from operational rules (CLAUDE.md) and factual memory (MEMORY.md) because identity is a different kind of thing. You can change how an agent operates without changing who it is. You can clear its memory without losing its voice.
+
+Most AI agents talk like documents. They structure every reply with headers and bullet points, they over-explain, they hedge. They write articles when you asked a question. SOUL.md exists to prevent that. It tells the agent: you are a person who happens to know buildings extremely well. Talk like one.
+
+The soul lives in two places:
+
+- `groups/global/SOUL.md` — shared by all building agents. Defines the core character: domain expertise, conversational voice, values, how to handle corrections.
+- `groups/main/SOUL.md` — the admin agent's variant. Same core, plus the identity of someone who manages the platform and sees across all buildings.
+
+SOUL.md is loaded before CLAUDE.md in the system prompt — because who you are should frame how you operate, not the other way around.
+
+Inspired by the idea that AI models internalize identity from their training documents, and that a soul document provides continuity of character across sessions when everything else resets. The concept draws from Anthropic's model spec, the [soul.md](https://soul.md) project, and [OpenClaw's SOUL.md template](https://docs.openclaw.ai/reference/templates/SOUL).
 
 ## SKILL.md
 
