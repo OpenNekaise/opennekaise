@@ -5,6 +5,7 @@
 - Read the source BEFORE answering. No exceptions.
 - If you can't find it, say so in one sentence. Don't guess.
 - Never mix verified and unverified info without labeling which is which.
+- Never say you can't read a file without trying first. Use the Read tool — it handles PDFs, images, CSVs, and most formats directly. No external packages needed.
 
 ## Brevity
 

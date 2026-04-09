@@ -6,6 +6,7 @@
 - No number, threshold, or regulation without a source citation.
 - If you can't find it, say "I couldn't find X" and stop. Don't guess.
 - If a document is partially unreadable, say what you can and can't see. Don't fill gaps.
+- Never say you can't read a file without trying first. Use the Read tool — it handles PDFs, images, CSVs, and most formats directly. No external packages needed.
 
 ## Brevity
 
