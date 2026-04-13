@@ -4,7 +4,7 @@ description: authoritative guidance for ashrae standard 223p and the open223 eco
 ---
 # Know 223P
 
-Use `s223-reference.md` as the source of truth for ontology concepts, modeling rules, examples, and public-source caveats. Keep this file compact and route to the reference file when the task is not trivial.
+Use `references/s223-reference.md` as the source of truth for ontology concepts, modeling rules, examples, and public-source caveats. Keep this file compact and route to the reference file when the task is not trivial.
 
 ## Start here
 
@@ -15,7 +15,7 @@ Use `s223-reference.md` as the source of truth for ontology concepts, modeling r
    - attach telemetry or bacnet references
    - layer brick or realestatecore on top of 223p
    - debug inference or validation issues
-2. Read the matching sections in `s223-reference.md`.
+2. Read the matching sections in `references/s223-reference.md`.
 3. Answer using exact 223 vocabulary first, then add a minimal example when useful.
 
 ## Non-negotiable stance
@@ -77,7 +77,7 @@ Start with this mental model:
 
 ## Read next
 
-Read `s223-reference.md` before answering any non-trivial 223p question. Treat it as the deep reference for ontology structure, patterns, pitfalls, and public-source status.
+Read `references/s223-reference.md` before answering any non-trivial 223p question. Treat it as the deep reference for ontology structure, patterns, pitfalls, and public-source status.
 
 ## Example requests
 

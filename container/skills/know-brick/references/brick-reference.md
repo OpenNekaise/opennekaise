@@ -4,12 +4,14 @@
 
 1. What Brick is
 2. Core concepts
-3. Relationship decision table
-4. A practical modeling workflow
-5. Minimal modeling patterns
-6. SPARQL snippets
-7. Common pitfalls
-8. Modeling checklist
+3. Core class hierarchy
+4. Relationship decision table
+5. A practical modeling workflow
+6. Minimal modeling patterns
+7. SPARQL snippets
+8. BMS point mapping guide
+9. Common pitfalls
+10. Modeling checklist
 
 ## What Brick is
 
@@ -47,6 +49,115 @@ Tags are annotations. They are useful for search and discovery, but they are not
 
 Relationships give the model its operational meaning. In practice, a good Brick model is often more about correct relationships than about squeezing every entity into the most specific possible class.
 
+## Core class hierarchy
+
+### Equipment
+```
+Equipment
+├── HVAC_Equipment
+│   ├── AHU (Air Handling Unit)
+│   ├── VAV (Variable Air Volume Box)
+│   ├── FCU (Fan Coil Unit)
+│   ├── CRAC (Computer Room Air Conditioning)
+│   ├── Fan (Supply_Fan, Return_Fan, Exhaust_Fan, Relief_Fan)
+│   ├── Pump (Chilled_Water_Pump, Hot_Water_Pump, Condenser_Water_Pump)
+│   ├── Chiller (Centrifugal_Chiller, Absorption_Chiller)
+│   ├── Boiler (Gas_Boiler, Electric_Boiler)
+│   ├── Heat_Exchanger (Condenser, Evaporator)
+│   ├── Cooling_Tower
+│   ├── Damper (Supply_Damper, Return_Damper, Exhaust_Damper, Outside_Damper)
+│   ├── Valve (Chilled_Water_Valve, Hot_Water_Valve, Bypass_Valve)
+│   ├── Coil (Cooling_Coil, Heating_Coil)
+│   ├── Compressor
+│   ├── Filter
+│   ├── Humidifier / Dehumidifier
+│   ├── Heat_Pump
+│   ├── Terminal_Unit
+│   └── HRV / ERV (Heat/Energy Recovery Ventilator)
+├── Electrical_Equipment
+│   ├── Transformer
+│   ├── Switchgear
+│   ├── Inverter (Solar_Inverter)
+│   ├── Battery / Energy_Storage
+│   └── EV_Charging_Station
+├── Lighting_Equipment
+│   ├── Luminaire
+│   └── Lighting_Driver
+├── Meter
+│   ├── Electrical_Meter (Building_Electrical_Meter, Panel_Electrical_Meter)
+│   ├── Gas_Meter
+│   ├── Water_Meter (Chilled_Water_Meter, Hot_Water_Meter)
+│   └── Thermal_Power_Meter
+├── Solar_Panel
+├── Water_Heater (Electric_Water_Heater, Gas_Water_Heater)
+└── ICT_Equipment (Server, Controller, Gateway)
+```
+
+### Point (data points — sensors, commands, setpoints)
+```
+Point
+├── Sensor
+│   ├── Temperature_Sensor
+│   │   ├── Air_Temperature_Sensor (Zone_Air_Temperature_Sensor, Supply_Air_Temperature_Sensor,
+│   │   │   Return_Air_Temperature_Sensor, Outside_Air_Temperature_Sensor,
+│   │   │   Discharge_Air_Temperature_Sensor, Mixed_Air_Temperature_Sensor)
+│   │   ├── Water_Temperature_Sensor (Chilled_Water_Temperature_Sensor,
+│   │   │   Hot_Water_Temperature_Sensor, Entering/Leaving_Water_Temperature_Sensor)
+│   │   └── Soil_Temperature_Sensor
+│   ├── Humidity_Sensor (Relative_Humidity_Sensor, Zone/Outside/Return/Supply_Air_Humidity_Sensor)
+│   ├── Pressure_Sensor (Static_Pressure_Sensor, Differential_Pressure_Sensor)
+│   ├── Flow_Sensor (Air_Flow_Sensor, Water_Flow_Sensor, Supply/Return_Air_Flow_Sensor)
+│   ├── CO2_Sensor (Zone_CO2_Sensor)
+│   ├── Occupancy_Sensor / People_Count_Sensor
+│   ├── Power_Sensor / Energy_Sensor
+│   ├── Voltage_Sensor / Current_Sensor
+│   ├── Speed_Sensor
+│   └── Illuminance_Sensor
+├── Setpoint
+│   ├── Temperature_Setpoint (Zone_Air_Temperature_Setpoint, Cooling/Heating_Temperature_Setpoint,
+│   │   Supply_Air_Temperature_Setpoint, Occupied/Unoccupied/Standby_*_Setpoint)
+│   ├── Pressure_Setpoint (Static_Pressure_Setpoint)
+│   ├── Flow_Setpoint (Supply_Air_Flow_Setpoint)
+│   ├── Humidity_Setpoint
+│   └── Speed_Setpoint
+├── Command
+│   ├── On_Off_Command (Fan_On_Off_Command, Pump_On_Off_Command)
+│   ├── Frequency_Command
+│   ├── Speed_Command (Fan_Speed_Command)
+│   ├── Position_Command (Damper_Position_Command, Valve_Position_Command)
+│   ├── Mode_Command (Cooling/Heating/Occupied_Mode_Command)
+│   └── Enable_Command / Disable_Command
+├── Status
+│   ├── On_Off_Status (Fan_On_Off_Status, Pump_On_Off_Status)
+│   ├── Mode_Status (Occupancy_Mode_Status, Cooling/Heating_Mode_Status)
+│   ├── Fault_Status
+│   ├── Run_Status
+│   └── Speed_Status
+├── Alarm
+│   ├── Temperature_Alarm (High/Low_Temperature_Alarm)
+│   ├── Pressure_Alarm
+│   ├── Humidity_Alarm
+│   └── CO2_Alarm
+└── Parameter
+    ├── Delay_Parameter
+    ├── Deadband_Parameter
+    ├── Proportional_Band_Parameter
+    └── Integral_Time_Parameter
+```
+
+### Location (spatial hierarchy)
+```
+Location
+├── Site
+├── Building
+├── Floor (Basement, Roof)
+├── Room (Office, Conference_Room, Laboratory, Server_Room, Mechanical_Room, Electrical_Room)
+├── Space
+├── Wing
+├── Zone (HVAC_Zone, Lighting_Zone, Fire_Zone)
+└── Outdoor_Area
+```
+
 ## Relationship decision table
 
 | If the meaning is... | Prefer | Inverse | Example |
@@ -55,6 +166,9 @@ Relationships give the model its operational meaning. In practice, a good Brick 
 | physical placement | `brick:hasLocation` | `brick:isLocationOf` | thermostat hasLocation room |
 | composition or containment that defines the subject | `brick:hasPart` | `brick:isPartOf` | AHU hasPart supply fan |
 | distribution or downstream flow | `brick:feeds` | `brick:isFedBy` | AHU feeds VAV |
+| metering | `brick:meters` | `brick:isMeteredBy` | Meter meters Equipment |
+| meter hierarchy | `brick:hasSubMeter` | `brick:isSubMeterOf` | Building meter hasSubMeter panel meter |
+| control | `brick:controls` | `brick:isControlledBy` | Controller controls Equipment |
 
 ### Fast rule of thumb
 
@@ -169,6 +283,7 @@ Here, the damper is part of the VAV. The VAV is located in the room. The room is
 ```sparql
 PREFIX brick: <https://brickschema.org/schema/Brick#>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
 SELECT ?equip ?equipType ?point ?pointType WHERE {
   ?equip brick:hasPoint ?point .
@@ -180,26 +295,84 @@ SELECT ?equip ?equipType ?point ?pointType WHERE {
 ORDER BY ?equip ?point
 ```
 
-### Physical locations
-
-```sparql
-PREFIX brick: <https://brickschema.org/schema/Brick#>
-
-SELECT ?entity ?location WHERE {
-  ?entity brick:hasLocation ?location .
-}
-ORDER BY ?entity
-```
-
-### Downstream feeds graph
+### Full feed chain (what feeds what)
 
 ```sparql
 PREFIX brick: <https://brickschema.org/schema/Brick#>
 
 SELECT ?upstream ?downstream WHERE {
-  ?upstream brick:feeds ?downstream .
+  ?upstream brick:feeds+ ?downstream .
 }
-ORDER BY ?upstream ?downstream
+```
+
+### All sensors in a zone with their equipment
+
+```sparql
+PREFIX brick: <https://brickschema.org/schema/Brick#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?zone ?equip ?sensor ?sensorType WHERE {
+  ?zone a brick:HVAC_Zone .
+  ?equip brick:feeds ?zone .
+  ?equip brick:hasPoint ?sensor .
+  ?sensor a ?sensorType .
+  ?sensorType rdfs:subClassOf* brick:Sensor .
+}
+```
+
+### Spatial hierarchy
+
+```sparql
+PREFIX brick: <https://brickschema.org/schema/Brick#>
+
+SELECT ?building ?floor ?room WHERE {
+  ?room a brick:Room .
+  ?room brick:isPartOf ?floor .
+  ?floor a brick:Floor .
+  ?floor brick:isPartOf ?building .
+  ?building a brick:Building .
+}
+```
+
+### Equipment in a specific location
+
+```sparql
+PREFIX brick: <https://brickschema.org/schema/Brick#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?equip ?equipType WHERE {
+  ?equip a ?equipType .
+  ?equipType rdfs:subClassOf* brick:Equipment .
+  ?equip brick:hasLocation ?loc .
+  ?loc a brick:Mechanical_Room .
+}
+```
+
+### Temperature sensors with their measurement context
+
+```sparql
+PREFIX brick: <https://brickschema.org/schema/Brick#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?sensor ?sensorType ?equip WHERE {
+  ?sensor a ?sensorType .
+  ?sensorType rdfs:subClassOf* brick:Temperature_Sensor .
+  ?sensor brick:isPointOf ?equip .
+}
+```
+
+### All meters and what they measure
+
+```sparql
+PREFIX brick: <https://brickschema.org/schema/Brick#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?meter ?meterType ?target ?targetType WHERE {
+  ?meter a ?meterType .
+  ?meterType rdfs:subClassOf* brick:Meter .
+  ?meter brick:meters ?target .
+  ?target a ?targetType .
+}
 ```
 
 ### Type counts
@@ -213,6 +386,32 @@ SELECT ?type (COUNT(?entity) AS ?count) WHERE {
 GROUP BY ?type
 ORDER BY DESC(?count)
 ```
+
+## BMS point mapping guide
+
+When mapping BMS/BAS point names to Brick classes, use this pattern:
+
+| BMS Pattern | Brick Class |
+|-------------|-------------|
+| `SAT`, `SupplyAirTemp` | `Supply_Air_Temperature_Sensor` |
+| `RAT`, `ReturnAirTemp` | `Return_Air_Temperature_Sensor` |
+| `OAT`, `OutsideAirTemp` | `Outside_Air_Temperature_Sensor` |
+| `DAT`, `DischargeAirTemp` | `Discharge_Air_Temperature_Sensor` |
+| `MAT`, `MixedAirTemp` | `Mixed_Air_Temperature_Sensor` |
+| `ZAT`, `ZoneTemp`, `RoomTemp` | `Zone_Air_Temperature_Sensor` |
+| `RH`, `Humidity` | `Relative_Humidity_Sensor` |
+| `CO2` | `CO2_Sensor` |
+| `SAF`, `SupplyAirFlow` | `Supply_Air_Flow_Sensor` |
+| `SP`, `StaticPressure` | `Static_Pressure_Sensor` |
+| `DmprCmd`, `DamperPos` | `Damper_Position_Command` |
+| `VlvCmd`, `ValvePos` | `Valve_Position_Command` |
+| `FanSpd`, `FanSpeed` | `Fan_Speed_Command` |
+| `FanStatus`, `FanSts` | `Fan_On_Off_Status` |
+| `CoolingSP`, `ClgSP` | `Cooling_Temperature_Setpoint` |
+| `HeatingSP`, `HtgSP` | `Heating_Temperature_Setpoint` |
+| `OccSts`, `Occupancy` | `Occupancy_Status` |
+| `kW`, `Power` | `Power_Sensor` |
+| `kWh`, `Energy` | `Energy_Sensor` |
 
 ## Common pitfalls
 
@@ -250,4 +449,3 @@ Before returning a Brick answer or graph, verify:
 - `feeds` is only used where actual distribution semantics exist
 - the graph parses successfully
 - if possible, the graph validates against Brick shapes
-

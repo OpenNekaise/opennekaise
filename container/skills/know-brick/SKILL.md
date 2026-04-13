@@ -22,8 +22,6 @@ Use this skill to turn messy building metadata into clear Brick-aligned models, 
 ## Read the right reference
 
 - For Brick concepts, class-vs-tag rules, relationships, modeling idioms, SPARQL snippets, and pitfalls, read `references/brick-reference.md`.
-- For BuildingMOTIF templates, shapes, validation, CSV import, and BACnet-to-Brick workflows, read `references/buildingmotif-reference.md`.
-- For agent-oriented design patterns inspired by Anthropic Claude Code and the Agent SDK, read `references/claude-agent-design.md`.
 - For authoritative source links and papers, read `references/sources.md`.
 
 ## Workflow decision tree
