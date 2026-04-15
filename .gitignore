@@ -42,3 +42,6 @@ home/*
 .opennekaise/
 
 agents-sdk-docs
+
+# Codex CLI marker
+.codex
