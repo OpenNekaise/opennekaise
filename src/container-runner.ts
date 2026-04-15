@@ -18,6 +18,7 @@ import {
   TIMEZONE,
 } from './config.js';
 import { readEnvFile } from './env.js';
+import { getExternalSkillDirs } from './external-skills.js';
 import { resolveGroupFolderPath, resolveGroupIpcPath } from './group-folder.js';
 import { logger } from './logger.js';
 import {
@@ -250,6 +251,15 @@ function buildVolumeMounts(
       const dstDir = path.join(skillsDst, skillDir);
       fs.cpSync(srcDir, dstDir, { recursive: true });
     }
+  }
+
+  // Also sync skills fetched from external repos (see src/external-skills.ts).
+  // Local skills win conflicts because they were copied first — external
+  // ones are skipped if a same-named directory already exists.
+  for (const srcDir of getExternalSkillDirs()) {
+    const dstDir = path.join(skillsDst, path.basename(srcDir));
+    if (fs.existsSync(dstDir)) continue;
+    fs.cpSync(srcDir, dstDir, { recursive: true });
   }
 
   // Sync per-group skills: any directory in the group folder containing a

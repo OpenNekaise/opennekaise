@@ -50,6 +50,19 @@ export const HOME_DATA_DIR = path.resolve(PROJECT_ROOT, 'home');
 export const DATA_DIR = path.resolve(PROJECT_ROOT, 'data');
 export const MAIN_GROUP_FOLDER = 'main';
 
+// External skill repos — cloned into .opennekaise/external-skills/<repo>/
+// and refreshed periodically. Each repo must have a top-level `skills/`
+// directory containing skill subdirectories (each with a SKILL.md).
+export const EXTERNAL_SKILLS_DIR = path.resolve(
+  PROJECT_ROOT,
+  '.opennekaise',
+  'external-skills',
+);
+export const EXTERNAL_SKILL_REPOS = [
+  'https://github.com/OpenNekaise/open-building-skills.git',
+];
+export const EXTERNAL_SKILLS_UPDATE_INTERVAL = 24 * 60 * 60 * 1000;
+
 export const CONTAINER_IMAGE =
   process.env.CONTAINER_IMAGE || 'opennekaise:latest';
 export const CONTAINER_TIMEOUT = parseInt(

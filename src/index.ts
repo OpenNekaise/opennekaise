@@ -26,6 +26,7 @@ import {
   cleanupOrphans,
   ensureContainerRuntimeRunning,
 } from './container-runtime.js';
+import { startExternalSkillsUpdater } from './external-skills.js';
 import {
   createTask,
   getAllChats,
@@ -693,6 +694,7 @@ async function main(): Promise<void> {
   logger.info('Database initialized');
   loadState();
   pruneDisallowedDmRegistrations();
+  startExternalSkillsUpdater();
 
   // Ensure all existing groups have a daily memory sweep task
   for (const [jid, group] of Object.entries(registeredGroups)) {

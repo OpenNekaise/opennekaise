@@ -16,6 +16,7 @@ Single Node.js process that connects to chat channels, routes messages to Claude
 | `src/router.ts` | Message formatting and outbound routing |
 | `src/config.ts` | Trigger pattern, paths, intervals |
 | `src/container-runner.ts` | Spawns agent containers with mounts |
+| `src/external-skills.ts` | Clones/pulls skills from external repos (see `EXTERNAL_SKILL_REPOS` in `config.ts`) |
 | `src/task-scheduler.ts` | Runs scheduled tasks |
 | `src/db.ts` | SQLite operations |
 | `groups/global/SOUL.md` | Agent character/identity (shared by all building agents) |
@@ -24,9 +25,8 @@ Single Node.js process that connects to chat channels, routes messages to Claude
 | `groups/main/CLAUDE.md` | Admin-specific operational rules |
 | `groups/{name}/CLAUDE.md` | Per-group instructions (isolated) |
 | `container/skills/agent-browser.md` | Browser automation tool (available to all agents via Bash) |
-| `container/skills/know-223p/` | ASHRAE 223P topology ontology reference and RDF tooling |
-| `container/skills/know-brick/` | Brick Schema classification ontology reference and RDF tooling |
 | `container/skills/simple-graph/` | Simple Brick-based building semantic models (Points, Groups, Descriptions) |
+| `.opennekaise/external-skills/` | Cache of skills fetched from external repos (see [open-building-skills](https://github.com/OpenNekaise/open-building-skills) for ontology skills) |
 
 ## Skills
 
