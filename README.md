@@ -121,9 +121,17 @@ Skills are markdown files that teach the agent how to do specific things — see
 - **update-memory** — powers the MEMORY.md system described above.
 - **update-ontology** — powers the ONTOLOGY.ttl system described above.
 - **agent-browser** — gives the agent a real browser for research, reading articles, extracting data from web pages, and interacting with web apps.
-- **know-ontology** — RDF, Brick Schema, and ASHRAE 223P support. Python tool for parsing TTL files, running SPARQL queries, exploring class hierarchies, and building semantic models.
+- **simple-graph** — helpers for authoring small Brick-based building semantic models (Points, Groups, Descriptions).
 
 Skills are directories, not just markdown. A skill folder contains a `SKILL.md` with instructions, and can include additional markdown files, scripts, and reference materials — Claude loads them progressively as needed. Drop a folder with a `SKILL.md` into `container/skills/` and it's available to every agent on the next run.
+
+**External skills** (`.opennekaise/external-skills/`) — skills fetched from public repos so they can evolve independently of OpenNekaise. The host clones each repo listed in `EXTERNAL_SKILL_REPOS` (`src/config.ts`) on startup and pulls every 24 hours in the background; cached skills are then merged into every container alongside the local ones. Local skills win on name conflicts.
+
+- [**open-building-skills**](https://github.com/OpenNekaise/open-building-skills) — standards-oriented skills maintained by the ontology community:
+  - **know-brick** — RDF and Brick Schema support for classification ontologies.
+  - **know-223p** — RDF and ASHRAE 223P support for topology ontologies.
+
+To ship your own shared skill set, push a repo with a top-level `skills/<skill-name>/SKILL.md` layout and add its clone URL to `EXTERNAL_SKILL_REPOS`.
 
 ## Reading Materials
 
