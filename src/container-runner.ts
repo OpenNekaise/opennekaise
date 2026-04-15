@@ -251,6 +251,21 @@ function buildVolumeMounts(
       fs.cpSync(srcDir, dstDir, { recursive: true });
     }
   }
+
+  // Sync per-group skills: any directory in the group folder containing a
+  // SKILL.md is treated as a group-specific skill (e.g. a BMS CLI that only
+  // one building uses). These are copied into .claude/skills/ alongside the
+  // global skills so the agent discovers them automatically.
+  for (const entry of fs.readdirSync(groupDir)) {
+    const entryPath = path.join(groupDir, entry);
+    if (
+      fs.statSync(entryPath).isDirectory() &&
+      fs.existsSync(path.join(entryPath, 'SKILL.md'))
+    ) {
+      const dstDir = path.join(skillsDst, entry);
+      fs.cpSync(entryPath, dstDir, { recursive: true });
+    }
+  }
   mounts.push({
     hostPath: groupSessionsDir,
     containerPath: '/home/node/.claude',
