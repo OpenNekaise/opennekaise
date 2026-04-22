@@ -129,7 +129,9 @@ function currentApp() {
   return appRef.current;
 }
 
-async function triggerMessageEvent(event: ReturnType<typeof createMessageEvent>) {
+async function triggerMessageEvent(
+  event: ReturnType<typeof createMessageEvent>,
+) {
   const handler = currentApp().eventHandlers.get('message');
   if (handler) await handler({ event });
 }
@@ -294,9 +296,9 @@ describe('SlackChannel', () => {
       expect(opts.onMessage).toHaveBeenCalledWith(
         'slack:C0123456789',
         expect.objectContaining({
-          is_from_me: true,
+          is_from_me: false,
           is_bot_message: true,
-          sender_name: 'Jonesy',
+          sender_name: 'B_MY_BOT',
         }),
       );
     });
@@ -306,7 +308,10 @@ describe('SlackChannel', () => {
       const channel = new SlackChannel(opts);
       await channel.connect();
 
-      const event = createMessageEvent({ user: 'U_BOT_123', text: 'Self message' });
+      const event = createMessageEvent({
+        user: 'U_BOT_123',
+        text: 'Self message',
+      });
       await triggerMessageEvent(event);
 
       expect(opts.onMessage).toHaveBeenCalledWith(
@@ -388,13 +393,17 @@ describe('SlackChannel', () => {
       await channel.connect();
 
       // First message — API call
-      await triggerMessageEvent(createMessageEvent({ user: 'U_USER_456', text: 'First' }));
+      await triggerMessageEvent(
+        createMessageEvent({ user: 'U_USER_456', text: 'First' }),
+      );
       // Second message — should use cache
-      await triggerMessageEvent(createMessageEvent({
-        user: 'U_USER_456',
-        text: 'Second',
-        ts: '1704067201.000000',
-      }));
+      await triggerMessageEvent(
+        createMessageEvent({
+          user: 'U_USER_456',
+          text: 'Second',
+          ts: '1704067201.000000',
+        }),
+      );
 
       expect(currentApp().client.users.info).toHaveBeenCalledTimes(1);
     });
@@ -404,7 +413,9 @@ describe('SlackChannel', () => {
       const channel = new SlackChannel(opts);
       await channel.connect();
 
-      currentApp().client.users.info.mockRejectedValueOnce(new Error('API error'));
+      currentApp().client.users.info.mockRejectedValueOnce(
+        new Error('API error'),
+      );
 
       const event = createMessageEvent({ user: 'U_UNKNOWN', text: 'Hi' });
       await triggerMessageEvent(event);
@@ -583,12 +594,11 @@ describe('SlackChannel', () => {
       });
     });
 
-    it('replies in a thread anchored to latest channel message', async () => {
+    it('delivers thread_id on inbound top-level messages (own ts)', async () => {
       const opts = createTestOpts();
       const channel = new SlackChannel(opts);
       await channel.connect();
 
-      // Simulate a user asking in-channel (not in a thread yet)
       await triggerMessageEvent(
         createMessageEvent({
           ts: '1704067202.000000',
@@ -596,21 +606,17 @@ describe('SlackChannel', () => {
         }),
       );
 
-      await channel.sendMessage('slack:C0123456789', 'Sure, checking now');
-
-      expect(currentApp().client.chat.postMessage).toHaveBeenLastCalledWith({
-        channel: 'C0123456789',
-        text: 'Sure, checking now',
-        thread_ts: '1704067202.000000',
-      });
+      expect(opts.onMessage).toHaveBeenCalledWith(
+        'slack:C0123456789',
+        expect.objectContaining({ thread_id: '1704067202.000000' }),
+      );
     });
 
-    it('continues replying in existing thread using parent thread_ts', async () => {
+    it('delivers thread_id on inbound thread replies (parent thread_ts)', async () => {
       const opts = createTestOpts();
       const channel = new SlackChannel(opts);
       await channel.connect();
 
-      // Simulate a user asking inside an existing thread
       await triggerMessageEvent(
         createMessageEvent({
           ts: '1704067203.000000',
@@ -619,34 +625,87 @@ describe('SlackChannel', () => {
         }),
       );
 
-      await channel.sendMessage('slack:C0123456789', 'Yes, here is the update');
-
-      expect(currentApp().client.chat.postMessage).toHaveBeenLastCalledWith({
-        channel: 'C0123456789',
-        text: 'Yes, here is the update',
-        thread_ts: '1704067000.000000',
-      });
+      expect(opts.onMessage).toHaveBeenCalledWith(
+        'slack:C0123456789',
+        expect.objectContaining({ thread_id: '1704067000.000000' }),
+      );
     });
 
-    it('does not create thread context from bot messages', async () => {
+    it('posts with thread_ts when threadId is passed to sendMessage', async () => {
       const opts = createTestOpts();
       const channel = new SlackChannel(opts);
       await channel.connect();
 
+      await channel.sendMessage(
+        'slack:C0123456789',
+        'Sure, checking now',
+        '1704067202.000000',
+      );
+
+      expect(currentApp().client.chat.postMessage).toHaveBeenLastCalledWith({
+        channel: 'C0123456789',
+        text: 'Sure, checking now',
+        thread_ts: '1704067202.000000',
+      });
+    });
+
+    it('posts top-level when no threadId is passed', async () => {
+      const opts = createTestOpts();
+      const channel = new SlackChannel(opts);
+      await channel.connect();
+
+      // An inbound message arrives but the caller does not pass its thread_id —
+      // the outbound send must NOT silently reuse any prior thread context.
       await triggerMessageEvent(
         createMessageEvent({
-          subtype: 'bot_message',
-          botId: 'B_MY_BOT',
           ts: '1704067204.000000',
-          text: 'Internal bot note',
+          text: 'some earlier message',
         }),
       );
 
-      await channel.sendMessage('slack:C0123456789', 'Operator-facing response');
+      await channel.sendMessage(
+        'slack:C0123456789',
+        'Operator-facing response',
+      );
 
       expect(currentApp().client.chat.postMessage).toHaveBeenLastCalledWith({
         channel: 'C0123456789',
         text: 'Operator-facing response',
+      });
+    });
+
+    it('does not mix threads across concurrent questions', async () => {
+      // Regression test for the bug that motivated removing threadContext:
+      // two top-level questions arriving back-to-back must each be replied
+      // to in their own thread, not to whichever arrived last.
+      const opts = createTestOpts();
+      const channel = new SlackChannel(opts);
+      await channel.connect();
+
+      const threadA = '1704067300.000000';
+      const threadB = '1704067400.000000';
+
+      await triggerMessageEvent(
+        createMessageEvent({ ts: threadA, text: 'Question A' }),
+      );
+      await triggerMessageEvent(
+        createMessageEvent({ ts: threadB, text: 'Question B' }),
+      );
+
+      // Replies land out of order — A finishes after B — but each goes
+      // to its own thread because the caller passes the correct threadId.
+      await channel.sendMessage('slack:C0123456789', 'Answer to B', threadB);
+      await channel.sendMessage('slack:C0123456789', 'Answer to A', threadA);
+
+      expect(currentApp().client.chat.postMessage).toHaveBeenNthCalledWith(1, {
+        channel: 'C0123456789',
+        text: 'Answer to B',
+        thread_ts: threadB,
+      });
+      expect(currentApp().client.chat.postMessage).toHaveBeenNthCalledWith(2, {
+        channel: 'C0123456789',
+        text: 'Answer to A',
+        thread_ts: threadA,
       });
     });
 
@@ -840,6 +899,31 @@ describe('SlackChannel', () => {
         channel.setTyping('slack:C0123456789', false),
       ).resolves.toBeUndefined();
     });
+
+    it('skips Slack status API when no threadId is provided', async () => {
+      const opts = createTestOpts();
+      const channel = new SlackChannel(opts);
+      await channel.connect();
+
+      const assistantSetStatus = vi.fn().mockResolvedValue(undefined);
+      (
+        currentApp().client as unknown as {
+          assistant: {
+            threads: {
+              setStatus: typeof assistantSetStatus;
+            };
+          };
+        }
+      ).assistant = {
+        threads: {
+          setStatus: assistantSetStatus,
+        },
+      };
+
+      await channel.setTyping('slack:C0123456789', true);
+
+      expect(assistantSetStatus).not.toHaveBeenCalled();
+    });
   });
 
   // --- Constructor error handling ---
@@ -876,17 +960,13 @@ describe('SlackChannel', () => {
       const channel = new SlackChannel(opts);
 
       // First page returns a cursor; second page returns no cursor
-      currentApp().client.conversations.list
-        .mockResolvedValueOnce({
-          channels: [
-            { id: 'C001', name: 'general', is_member: true },
-          ],
+      currentApp()
+        .client.conversations.list.mockResolvedValueOnce({
+          channels: [{ id: 'C001', name: 'general', is_member: true }],
           response_metadata: { next_cursor: 'cursor_page2' },
         })
         .mockResolvedValueOnce({
-          channels: [
-            { id: 'C002', name: 'random', is_member: true },
-          ],
+          channels: [{ id: 'C002', name: 'random', is_member: true }],
           response_metadata: {},
         });
 
@@ -894,7 +974,8 @@ describe('SlackChannel', () => {
 
       // Should have called conversations.list twice (once per page)
       expect(currentApp().client.conversations.list).toHaveBeenCalledTimes(2);
-      expect(currentApp().client.conversations.list).toHaveBeenNthCalledWith(2,
+      expect(currentApp().client.conversations.list).toHaveBeenNthCalledWith(
+        2,
         expect.objectContaining({ cursor: 'cursor_page2' }),
       );
 

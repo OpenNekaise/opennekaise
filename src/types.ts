@@ -50,6 +50,11 @@ export interface NewMessage {
   timestamp: string;
   is_from_me?: boolean;
   is_bot_message?: boolean;
+  // Channel-specific thread identifier. For Slack this is thread_ts (the parent
+  // message's ts for thread replies, or the message's own ts for top-level
+  // messages — either way, the correct thread_ts to reply into). Undefined for
+  // channels without threading (WhatsApp).
+  thread_id?: string;
 }
 
 export interface ScheduledTask {
@@ -81,14 +86,21 @@ export interface TaskRunLog {
 export interface Channel {
   name: string;
   connect(): Promise<void>;
-  sendMessage(jid: string, text: string): Promise<void>;
+  // threadId: channel-specific thread identifier to reply into (Slack thread_ts).
+  // When omitted, posts top-level. Channels without threading (WhatsApp) ignore it.
+  sendMessage(jid: string, text: string, threadId?: string): Promise<void>;
   isConnected(): boolean;
   ownsJid(jid: string): boolean;
   disconnect(): Promise<void>;
   // Optional: typing indicator. Channels that support it implement it.
-  setTyping?(jid: string, isTyping: boolean): Promise<void>;
+  setTyping?(jid: string, isTyping: boolean, threadId?: string): Promise<void>;
   // Optional: file upload. Channels that support it implement it.
-  sendFile?(jid: string, filePath: string, comment?: string): Promise<void>;
+  sendFile?(
+    jid: string,
+    filePath: string,
+    comment?: string,
+    threadId?: string,
+  ): Promise<void>;
 }
 
 // Callback type that channels use to deliver inbound messages

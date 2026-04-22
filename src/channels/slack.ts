@@ -43,7 +43,6 @@ export class SlackChannel implements Channel {
   }> = [];
   private flushing = false;
   private userNameCache = new Map<string, string>();
-  private threadContext = new Map<string, string>();
   private typingIntervals = new Map<string, ReturnType<typeof setInterval>>();
 
   private opts: SlackChannelOpts;
@@ -87,8 +86,10 @@ export class SlackChannel implements Channel {
 
       if (!msg.text) return;
 
-      // Threaded replies are flattened into the conversation history for the agent,
-      // but outbound replies are routed back to the same thread via threadContext.
+      // Threaded replies are flattened into the conversation history for the agent.
+      // Each inbound message carries its own thread_id so outbound replies can be
+      // routed back to the correct thread, even when multiple concurrent questions
+      // arrive in the same channel.
 
       const jid = `slack:${msg.channel}`;
       const timestamp = new Date(parseFloat(msg.ts) * 1000).toISOString();
@@ -109,12 +110,9 @@ export class SlackChannel implements Channel {
       const isBotMessage = isFromMe || isOtherBot;
       const threadTs = (msg as { thread_ts?: string }).thread_ts;
 
-      // Track latest user thread context for this channel.
-      // For in-channel messages, this sets a new thread anchored at msg.ts.
-      // For thread replies, this keeps using the parent thread_ts.
-      if (!isFromMe) {
-        this.threadContext.set(jid, threadTs || msg.ts);
-      }
+      // thread_id is the ts to reply into: parent thread_ts for thread replies,
+      // or the message's own ts for top-level messages (which anchors a new thread).
+      const threadId = threadTs || msg.ts;
 
       let senderName: string;
       if (isFromMe) {
@@ -123,9 +121,7 @@ export class SlackChannel implements Channel {
         // Resolve other bot's display name from the message username field,
         // or fall back to the bot_id.
         senderName =
-          (msg as BotMessageEvent).username ||
-          msg.bot_id ||
-          'unknown-bot';
+          (msg as BotMessageEvent).username || msg.bot_id || 'unknown-bot';
       } else {
         senderName =
           (msg.user ? await this.resolveUserName(msg.user) : undefined) ||
@@ -137,9 +133,12 @@ export class SlackChannel implements Channel {
       // Slack encodes @mentions as <@U12345>, which won't match TRIGGER_PATTERN
       // (e.g., ^@<ASSISTANT_NAME>\b), so we prepend the trigger when the bot is @mentioned.
       let content = msg.text;
-      if (this.botUserId && !isFromMe) {
+      if (this.botUserId && !isBotMessage) {
         const mentionPattern = `<@${this.botUserId}>`;
-        if (content.includes(mentionPattern) && !TRIGGER_PATTERN.test(content)) {
+        if (
+          content.includes(mentionPattern) &&
+          !TRIGGER_PATTERN.test(content)
+        ) {
           content = `@${ASSISTANT_NAME} ${content}`;
         }
       }
@@ -153,6 +152,7 @@ export class SlackChannel implements Channel {
         timestamp,
         is_from_me: isFromMe,
         is_bot_message: isBotMessage,
+        thread_id: threadId,
       });
     });
   }
@@ -168,10 +168,7 @@ export class SlackChannel implements Channel {
       this.botUserId = auth.user_id as string;
       logger.info({ botUserId: this.botUserId }, 'Connected to Slack');
     } catch (err) {
-      logger.warn(
-        { err },
-        'Connected to Slack but failed to get bot user ID',
-      );
+      logger.warn({ err }, 'Connected to Slack but failed to get bot user ID');
     }
 
     this.connected = true;
@@ -183,9 +180,13 @@ export class SlackChannel implements Channel {
     await this.syncChannelMetadata();
   }
 
-  async sendMessage(jid: string, text: string): Promise<void> {
+  async sendMessage(
+    jid: string,
+    text: string,
+    threadId?: string,
+  ): Promise<void> {
     const channelId = jid.replace(/^slack:/, '');
-    const threadTs = this.threadContext.get(jid);
+    const threadTs = threadId;
 
     if (!this.connected) {
       this.outgoingQueue.push({ jid, text, threadTs });
@@ -223,9 +224,14 @@ export class SlackChannel implements Channel {
     }
   }
 
-  async sendFile(jid: string, filePath: string, comment?: string): Promise<void> {
+  async sendFile(
+    jid: string,
+    filePath: string,
+    comment?: string,
+    threadId?: string,
+  ): Promise<void> {
     const channelId = jid.replace(/^slack:/, '');
-    const threadTs = this.threadContext.get(jid);
+    const threadTs = threadId;
 
     if (!this.connected) {
       logger.warn({ jid, filePath }, 'Slack disconnected, cannot upload file');
@@ -270,9 +276,13 @@ export class SlackChannel implements Channel {
   // Requires the Slack app to have the assistant:write scope and the
   // Agents & Assistants feature enabled. Fails silently if not available.
   // A keepalive interval refreshes the status every 90s (Slack auto-clears at 2min).
-  async setTyping(jid: string, isTyping: boolean): Promise<void> {
+  async setTyping(
+    jid: string,
+    isTyping: boolean,
+    threadId?: string,
+  ): Promise<void> {
     const channelId = jid.replace(/^slack:/, '');
-    const threadTs = this.threadContext.get(jid);
+    const threadTs = threadId;
 
     const existing = this.typingIntervals.get(jid);
     if (existing) {
@@ -280,11 +290,21 @@ export class SlackChannel implements Channel {
       this.typingIntervals.delete(jid);
     }
 
+    // Slack's assistant thread status API requires a thread_ts. If there is no
+    // thread target, skip the API call instead of emitting SDK errors.
+    if (!threadTs) return;
+
     const callStatus = async (status: string) => {
       try {
-        await (this.app.client as unknown as Record<string, unknown> & {
-          assistant: { threads: { setStatus: (args: Record<string, string>) => Promise<void> } };
-        }).assistant.threads.setStatus({
+        await (
+          this.app.client as unknown as Record<string, unknown> & {
+            assistant: {
+              threads: {
+                setStatus: (args: Record<string, string>) => Promise<void>;
+              };
+            };
+          }
+        ).assistant.threads.setStatus({
           channel_id: channelId,
           ...(threadTs ? { thread_ts: threadTs } : {}),
           status,
@@ -337,9 +357,7 @@ export class SlackChannel implements Channel {
     }
   }
 
-  private async resolveUserName(
-    userId: string,
-  ): Promise<string | undefined> {
+  private async resolveUserName(userId: string): Promise<string | undefined> {
     if (!userId) return undefined;
 
     const cached = this.userNameCache.get(userId);

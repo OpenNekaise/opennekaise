@@ -32,6 +32,8 @@ function createSchema(database: Database.Database): void {
       timestamp TEXT,
       is_from_me INTEGER,
       is_bot_message INTEGER DEFAULT 0,
+      thread_id TEXT,
+      agent_processed_at TEXT,
       PRIMARY KEY (id, chat_jid),
       FOREIGN KEY (chat_jid) REFERENCES chats(jid)
     );
@@ -102,6 +104,58 @@ function createSchema(database: Database.Database): void {
     database
       .prepare(`UPDATE messages SET is_bot_message = 1 WHERE content LIKE ?`)
       .run(`${ASSISTANT_NAME}:%`);
+  } catch {
+    /* column already exists */
+  }
+
+  // Add thread_id column if it doesn't exist (migration for existing DBs).
+  // Used by Slack to pin replies to the correct thread; NULL for channels
+  // without threads (WhatsApp).
+  try {
+    database.exec(`ALTER TABLE messages ADD COLUMN thread_id TEXT`);
+  } catch {
+    /* column already exists */
+  }
+
+  // Add agent_processed_at column if it doesn't exist (migration for existing DBs).
+  // Slack uses this to process each thread batch independently without relying on
+  // a single per-channel timestamp cursor.
+  try {
+    database.exec(`ALTER TABLE messages ADD COLUMN agent_processed_at TEXT`);
+
+    // Backfill existing processed history from the legacy per-chat cursor so
+    // historical Slack messages do not get reprocessed after upgrading.
+    const cursorRow = database
+      .prepare(
+        `SELECT value FROM router_state WHERE key = 'last_agent_timestamp'`,
+      )
+      .get() as { value: string } | undefined;
+
+    if (cursorRow?.value) {
+      try {
+        const legacyCursors = JSON.parse(cursorRow.value) as Record<
+          string,
+          string
+        >;
+        const markProcessed = database.prepare(`
+          UPDATE messages
+          SET agent_processed_at = ?
+          WHERE chat_jid = ?
+            AND timestamp <= ?
+            AND agent_processed_at IS NULL
+        `);
+        const now = new Date().toISOString();
+
+        for (const [chatJid, timestamp] of Object.entries(legacyCursors)) {
+          if (!timestamp) continue;
+          markProcessed.run(now, chatJid, timestamp);
+        }
+      } catch {
+        logger.warn(
+          'Could not backfill agent_processed_at from last_agent_timestamp',
+        );
+      }
+    }
   } catch {
     /* column already exists */
   }
@@ -249,7 +303,29 @@ export function setLastGroupSync(): void {
  */
 export function storeMessage(msg: NewMessage): void {
   db.prepare(
-    `INSERT OR REPLACE INTO messages (id, chat_jid, sender, sender_name, content, timestamp, is_from_me, is_bot_message) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    `
+      INSERT INTO messages (
+        id,
+        chat_jid,
+        sender,
+        sender_name,
+        content,
+        timestamp,
+        is_from_me,
+        is_bot_message,
+        thread_id,
+        agent_processed_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
+      ON CONFLICT(id, chat_jid) DO UPDATE SET
+        sender = excluded.sender,
+        sender_name = excluded.sender_name,
+        content = excluded.content,
+        timestamp = excluded.timestamp,
+        is_from_me = excluded.is_from_me,
+        is_bot_message = excluded.is_bot_message,
+        thread_id = excluded.thread_id,
+        agent_processed_at = COALESCE(messages.agent_processed_at, excluded.agent_processed_at)
+    `,
   ).run(
     msg.id,
     msg.chat_jid,
@@ -259,6 +335,7 @@ export function storeMessage(msg: NewMessage): void {
     msg.timestamp,
     msg.is_from_me ? 1 : 0,
     msg.is_bot_message ? 1 : 0,
+    msg.thread_id ?? null,
   );
 }
 
@@ -274,9 +351,32 @@ export function storeMessageDirect(msg: {
   timestamp: string;
   is_from_me: boolean;
   is_bot_message?: boolean;
+  thread_id?: string;
 }): void {
   db.prepare(
-    `INSERT OR REPLACE INTO messages (id, chat_jid, sender, sender_name, content, timestamp, is_from_me, is_bot_message) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    `
+      INSERT INTO messages (
+        id,
+        chat_jid,
+        sender,
+        sender_name,
+        content,
+        timestamp,
+        is_from_me,
+        is_bot_message,
+        thread_id,
+        agent_processed_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
+      ON CONFLICT(id, chat_jid) DO UPDATE SET
+        sender = excluded.sender,
+        sender_name = excluded.sender_name,
+        content = excluded.content,
+        timestamp = excluded.timestamp,
+        is_from_me = excluded.is_from_me,
+        is_bot_message = excluded.is_bot_message,
+        thread_id = excluded.thread_id,
+        agent_processed_at = COALESCE(messages.agent_processed_at, excluded.agent_processed_at)
+    `,
   ).run(
     msg.id,
     msg.chat_jid,
@@ -286,6 +386,7 @@ export function storeMessageDirect(msg: {
     msg.timestamp,
     msg.is_from_me ? 1 : 0,
     msg.is_bot_message ? 1 : 0,
+    msg.thread_id ?? null,
   );
 }
 
@@ -300,7 +401,7 @@ export function getNewMessages(
   // Filter OUR OWN bot output (is_from_me) but allow other bots through (A2A).
   // Content prefix check is a backstop for messages written before the migration.
   const sql = `
-    SELECT id, chat_jid, sender, sender_name, content, timestamp
+    SELECT id, chat_jid, sender, sender_name, content, timestamp, thread_id
     FROM messages
     WHERE timestamp > ? AND chat_jid IN (${placeholders})
       AND is_from_me = 0 AND content NOT LIKE ?
@@ -328,7 +429,7 @@ export function getMessagesSince(
   // Filter OUR OWN bot output (is_from_me) but allow other bots through (A2A).
   // Content prefix check is a backstop for messages written before the migration.
   const sql = `
-    SELECT id, chat_jid, sender, sender_name, content, timestamp
+    SELECT id, chat_jid, sender, sender_name, content, timestamp, thread_id
     FROM messages
     WHERE chat_jid = ? AND timestamp > ?
       AND is_from_me = 0 AND content NOT LIKE ?
@@ -338,6 +439,39 @@ export function getMessagesSince(
   return db
     .prepare(sql)
     .all(chatJid, sinceTimestamp, `${botPrefix}:%`) as NewMessage[];
+}
+
+export function getPendingMessages(
+  chatJid: string,
+  botPrefix: string,
+): NewMessage[] {
+  const sql = `
+    SELECT id, chat_jid, sender, sender_name, content, timestamp, thread_id
+    FROM messages
+    WHERE chat_jid = ?
+      AND agent_processed_at IS NULL
+      AND is_from_me = 0 AND content NOT LIKE ?
+      AND content != '' AND content IS NOT NULL
+    ORDER BY timestamp
+  `;
+  return db.prepare(sql).all(chatJid, `${botPrefix}:%`) as NewMessage[];
+}
+
+export function markMessagesProcessed(
+  chatJid: string,
+  messageIds: string[],
+): void {
+  if (messageIds.length === 0) return;
+
+  const placeholders = messageIds.map(() => '?').join(',');
+  db.prepare(
+    `
+      UPDATE messages
+      SET agent_processed_at = ?
+      WHERE chat_jid = ?
+        AND id IN (${placeholders})
+    `,
+  ).run(new Date().toISOString(), chatJid, ...messageIds);
 }
 
 export function createTask(
@@ -498,7 +632,7 @@ export function getRecentConversation(
   limit: number = 50,
 ): NewMessage[] {
   const sql = `
-    SELECT id, chat_jid, sender, sender_name, content, timestamp
+    SELECT id, chat_jid, sender, sender_name, content, timestamp, thread_id
     FROM messages
     WHERE chat_jid = ?
       AND content != '' AND content IS NOT NULL
@@ -607,7 +741,7 @@ export function getConversationForLocalDay(
   );
 
   const sql = `
-    SELECT id, chat_jid, sender, sender_name, content, timestamp
+    SELECT id, chat_jid, sender, sender_name, content, timestamp, thread_id
     FROM messages
     WHERE chat_jid = ?
       AND timestamp >= ?
@@ -618,7 +752,11 @@ export function getConversationForLocalDay(
 
   return db
     .prepare(sql)
-    .all(chatJid, start.toISOString(), nextLocalMidnight.toISOString()) as NewMessage[];
+    .all(
+      chatJid,
+      start.toISOString(),
+      nextLocalMidnight.toISOString(),
+    ) as NewMessage[];
 }
 
 // --- Session accessors ---

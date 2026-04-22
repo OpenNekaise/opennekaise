@@ -8,7 +8,9 @@ import {
   getConversationForLocalDay,
   getMessagesSince,
   getNewMessages,
+  getPendingMessages,
   getTaskById,
+  markMessagesProcessed,
   storeChatMetadata,
   storeMessage,
   updateTask,
@@ -223,6 +225,49 @@ describe('getMessagesSince', () => {
       'Andy',
     );
     expect(msgs).toHaveLength(0);
+  });
+});
+
+describe('Slack pending message tracking', () => {
+  beforeEach(() => {
+    storeChatMetadata('slack:C123', '2024-01-01T00:00:00.000Z');
+
+    storeMessage({
+      id: 's1',
+      chat_jid: 'slack:C123',
+      sender: 'U1',
+      sender_name: 'Alice',
+      content: 'Question A',
+      timestamp: '2024-01-01T00:00:01.000Z',
+      thread_id: '1704067201.000000',
+    });
+    storeMessage({
+      id: 's2',
+      chat_jid: 'slack:C123',
+      sender: 'U2',
+      sender_name: 'Bob',
+      content: 'Question B',
+      timestamp: '2024-01-01T00:00:02.000Z',
+      thread_id: '1704067202.000000',
+    });
+  });
+
+  it('returns unprocessed Slack messages with their thread ids', () => {
+    const pending = getPendingMessages('slack:C123', 'Nekaise');
+
+    expect(pending.map((message) => message.id)).toEqual(['s1', 's2']);
+    expect(pending.map((message) => message.thread_id)).toEqual([
+      '1704067201.000000',
+      '1704067202.000000',
+    ]);
+  });
+
+  it('removes processed Slack messages from the pending queue without affecting other threads', () => {
+    markMessagesProcessed('slack:C123', ['s1']);
+
+    const pending = getPendingMessages('slack:C123', 'Nekaise');
+
+    expect(pending.map((message) => message.id)).toEqual(['s2']);
   });
 });
 

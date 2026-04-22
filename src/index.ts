@@ -35,9 +35,11 @@ import {
   getAllTasks,
   getMessagesSince,
   getNewMessages,
+  getPendingMessages,
   getRouterState,
   getTasksForGroup,
   initDatabase,
+  markMessagesProcessed,
   deleteRegisteredGroup,
   setRegisteredGroup,
   setRouterState,
@@ -48,7 +50,14 @@ import {
 import { GroupQueue } from './group-queue.js';
 import { resolveGroupFolderPath } from './group-folder.js';
 import { startIpcWatcher } from './ipc.js';
-import { extractFileRefs, findChannel, formatMessages, formatOutbound, stripInternalTags } from './router.js';
+import { selectNextMessageBatch } from './message-batches.js';
+import {
+  extractFileRefs,
+  findChannel,
+  formatMessages,
+  formatOutbound,
+  stripInternalTags,
+} from './router.js';
 import { startSchedulerLoop } from './task-scheduler.js';
 import { Channel, NewMessage, RegisteredGroup } from './types.js';
 import { readEnvFile } from './env.js';
@@ -70,6 +79,22 @@ const queue = new GroupQueue();
 
 function isDmJid(jid: string): boolean {
   return jid.startsWith('slack:D') || jid.endsWith('@s.whatsapp.net');
+}
+
+function isSlackJid(jid: string): boolean {
+  return jid.startsWith('slack:');
+}
+
+function hasMessageTrigger(message: NewMessage): boolean {
+  return TRIGGER_PATTERN.test(message.content.trim());
+}
+
+function getNextSlackMessageBatch(chatJid: string, needsTrigger: boolean) {
+  return selectNextMessageBatch(getPendingMessages(chatJid, ASSISTANT_NAME), {
+    threaded: true,
+    needsTrigger,
+    hasTrigger: hasMessageTrigger,
+  });
 }
 
 function isDmAllowed(jid: string): boolean {
@@ -147,10 +172,7 @@ function ensureMemorySweepTask(chatJid: string, groupFolder: string): void {
     status: 'active',
     created_at: now.toISOString(),
   });
-  logger.info(
-    { groupFolder, taskId },
-    'Auto-created daily memory sweep task',
-  );
+  logger.info({ groupFolder, taskId }, 'Auto-created daily memory sweep task');
 }
 
 function nextCronRun(cronExpr: string): string {
@@ -265,7 +287,9 @@ function findHomeFolderForChannel(channelName: string): string | null {
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '');
     const target = toAscii(slug);
-    const match = entries.find((e) => e.isDirectory() && toAscii(e.name) === target);
+    const match = entries.find(
+      (e) => e.isDirectory() && toAscii(e.name) === target,
+    );
     return match ? match.name : null;
   } catch {
     return null;
@@ -312,7 +336,8 @@ function autoRegisterDmChannels(): void {
   if (!adminDm) return;
 
   const existingMain = Object.entries(registeredGroups).find(
-    ([jid, group]) => group.folder === MAIN_GROUP_FOLDER && jid !== ADMIN_DM_JID,
+    ([jid, group]) =>
+      group.folder === MAIN_GROUP_FOLDER && jid !== ADMIN_DM_JID,
   );
   if (existingMain) {
     logger.warn(
@@ -353,35 +378,44 @@ async function processGroupMessages(chatJid: string): Promise<boolean> {
   }
 
   const isMainGroup = group.folder === MAIN_GROUP_FOLDER;
+  const needsTrigger = !isMainGroup && group.requiresTrigger !== false;
+  const isSlackConversation = isSlackJid(chatJid);
 
-  const sinceTimestamp = lastAgentTimestamp[chatJid] || '';
-  const missedMessages = getMessagesSince(
-    chatJid,
-    sinceTimestamp,
-    ASSISTANT_NAME,
-  );
+  let missedMessages: NewMessage[];
+  let replyThreadId: string | undefined;
+  let previousCursor: string | undefined;
 
-  if (missedMessages.length === 0) return true;
+  if (isSlackConversation) {
+    const nextBatch = getNextSlackMessageBatch(chatJid, needsTrigger);
+    if (!nextBatch) return true;
 
-  // For non-main groups, check if trigger is required and present
-  if (!isMainGroup && group.requiresTrigger !== false) {
-    const hasTrigger = missedMessages.some((m) =>
-      TRIGGER_PATTERN.test(m.content.trim()),
-    );
-    if (!hasTrigger) return true;
+    missedMessages = nextBatch.messages;
+    replyThreadId = nextBatch.threadId;
+  } else {
+    const sinceTimestamp = lastAgentTimestamp[chatJid] || '';
+    missedMessages = getMessagesSince(chatJid, sinceTimestamp, ASSISTANT_NAME);
+
+    if (missedMessages.length === 0) return true;
+
+    if (needsTrigger && !missedMessages.some(hasMessageTrigger)) {
+      return true;
+    }
+
+    replyThreadId = missedMessages[missedMessages.length - 1].thread_id;
+
+    // Advance cursor so the piping path in startMessageLoop won't re-fetch
+    // these messages. Save the old cursor so we can roll back on error.
+    previousCursor = lastAgentTimestamp[chatJid] || '';
+    lastAgentTimestamp[chatJid] =
+      missedMessages[missedMessages.length - 1].timestamp;
+    saveState();
   }
 
   const prompt = formatMessages(missedMessages);
-
-  // Advance cursor so the piping path in startMessageLoop won't re-fetch
-  // these messages. Save the old cursor so we can roll back on error.
-  const previousCursor = lastAgentTimestamp[chatJid] || '';
-  lastAgentTimestamp[chatJid] =
-    missedMessages[missedMessages.length - 1].timestamp;
-  saveState();
+  const processedMessageIds = missedMessages.map((message) => message.id);
 
   logger.info(
-    { group: group.name, messageCount: missedMessages.length },
+    { group: group.name, messageCount: missedMessages.length, replyThreadId },
     'Processing messages',
   );
 
@@ -399,10 +433,11 @@ async function processGroupMessages(chatJid: string): Promise<boolean> {
     }, IDLE_TIMEOUT);
   };
 
-  await channel.setTyping?.(chatJid, true);
+  await channel.setTyping?.(chatJid, true, replyThreadId);
   let hadError = false;
   let outputSentToUser = false;
   let memoryUpdateTriggered = false;
+  let slackBatchMarkedProcessed = false;
 
   const output = await runAgent(group, prompt, chatJid, async (result) => {
     // Streaming output callback — called for each agent result
@@ -418,19 +453,25 @@ async function processGroupMessages(chatJid: string): Promise<boolean> {
       // Extract <file> tags and upload referenced files
       const { files, text } = extractFileRefs(stripped);
       if (text) {
-        await channel.sendMessage(chatJid, text);
+        await channel.sendMessage(chatJid, text, replyThreadId);
         outputSentToUser = true;
       }
       if (channel.sendFile && files.length > 0) {
         const groupDir = resolveGroupFolderPath(group.folder);
         for (const containerPath of files) {
           // Resolve container path (/workspace/group/...) to host path
-          const hostPath = containerPath.replace(/^\/workspace\/group\/?/, groupDir + '/');
+          const hostPath = containerPath.replace(
+            /^\/workspace\/group\/?/,
+            groupDir + '/',
+          );
           try {
-            await channel.sendFile(chatJid, hostPath);
+            await channel.sendFile(chatJid, hostPath, undefined, replyThreadId);
             outputSentToUser = true;
           } catch (err) {
-            logger.warn({ group: group.name, containerPath, hostPath, err }, 'Failed to send file');
+            logger.warn(
+              { group: group.name, containerPath, hostPath, err },
+              'Failed to send file',
+            );
           }
         }
       }
@@ -444,6 +485,20 @@ async function processGroupMessages(chatJid: string): Promise<boolean> {
           chatJid,
           '[SYSTEM] Conversation turn complete. Run /update-memory to process the recent messages into memory. If the conversation contained confirmed building facts (equipment changes, setpoint updates, sensor status, operational changes), also run /update-ontology.',
         );
+
+        // For Slack: mark the current batch processed now (user got their
+        // reply, any agent error afterwards shouldn't retry it). Then if
+        // other thread batches are waiting, flag pendingMessages so the
+        // next notifyIdle (after memory-update) closes the container,
+        // letting the queue drain the next batch. Without this the
+        // container sits for IDLE_TIMEOUT (30 min) and batches pile up.
+        if (isSlackConversation) {
+          markMessagesProcessed(chatJid, processedMessageIds);
+          slackBatchMarkedProcessed = true;
+          if (getNextSlackMessageBatch(chatJid, needsTrigger)) {
+            queue.enqueueMessageCheck(chatJid);
+          }
+        }
       }
     }
 
@@ -456,27 +511,50 @@ async function processGroupMessages(chatJid: string): Promise<boolean> {
     }
   });
 
-  await channel.setTyping?.(chatJid, false);
+  await channel.setTyping?.(chatJid, false, replyThreadId);
   if (idleTimer) clearTimeout(idleTimer);
 
   if (output === 'error' || hadError) {
-    // If we already sent output to the user, don't roll back the cursor —
-    // the user got their response and re-processing would send duplicates.
     if (outputSentToUser) {
+      if (isSlackConversation) {
+        if (!slackBatchMarkedProcessed) {
+          markMessagesProcessed(chatJid, processedMessageIds);
+          slackBatchMarkedProcessed = true;
+        }
+        if (getNextSlackMessageBatch(chatJid, needsTrigger)) {
+          queue.enqueueMessageCheck(chatJid);
+        }
+      }
       logger.warn(
         { group: group.name },
-        'Agent error after output was sent, skipping cursor rollback to prevent duplicates',
+        isSlackConversation
+          ? 'Agent error after output was sent, marking Slack batch processed to prevent duplicates'
+          : 'Agent error after output was sent, skipping cursor rollback to prevent duplicates',
       );
       return true;
     }
-    // Roll back cursor so retries can re-process these messages
-    lastAgentTimestamp[chatJid] = previousCursor;
-    saveState();
+
+    if (!isSlackConversation) {
+      // Roll back cursor so retries can re-process these messages
+      lastAgentTimestamp[chatJid] = previousCursor || '';
+      saveState();
+    }
     logger.warn(
       { group: group.name },
-      'Agent error, rolled back message cursor for retry',
+      isSlackConversation
+        ? 'Agent error, leaving Slack batch pending for retry'
+        : 'Agent error, rolled back message cursor for retry',
     );
     return false;
+  }
+
+  if (isSlackConversation) {
+    if (!slackBatchMarkedProcessed) {
+      markMessagesProcessed(chatJid, processedMessageIds);
+    }
+    if (getNextSlackMessageBatch(chatJid, needsTrigger)) {
+      queue.enqueueMessageCheck(chatJid);
+    }
   }
 
   return true;
@@ -616,14 +694,21 @@ async function startMessageLoop(): Promise<void> {
 
           const isMainGroup = group.folder === MAIN_GROUP_FOLDER;
           const needsTrigger = !isMainGroup && group.requiresTrigger !== false;
+          const isSlackConversation = isSlackJid(chatJid);
+
+          // Slack threading is processed one thread batch at a time from SQLite.
+          // Do not pipe live messages into an active container, or distinct
+          // top-level questions will collapse into the same reply thread.
+          if (isSlackConversation) {
+            queue.enqueueMessageCheck(chatJid);
+            continue;
+          }
 
           // For non-main groups, only act on trigger messages.
           // Non-trigger messages accumulate in DB and get pulled as
           // context when a trigger eventually arrives.
           if (needsTrigger) {
-            const hasTrigger = groupMessages.some((m) =>
-              TRIGGER_PATTERN.test(m.content.trim()),
-            );
+            const hasTrigger = groupMessages.some(hasMessageTrigger);
             if (!hasTrigger) continue;
           }
 
@@ -646,9 +731,13 @@ async function startMessageLoop(): Promise<void> {
             lastAgentTimestamp[chatJid] =
               messagesToSend[messagesToSend.length - 1].timestamp;
             saveState();
-            // Show typing indicator while the container processes the piped message
+            // Show typing indicator while the container processes the piped message.
+            // Use the latest inbound message's thread so the indicator lands where
+            // the eventual reply will — not in whatever thread was touched last.
+            const typingThreadId =
+              messagesToSend[messagesToSend.length - 1].thread_id;
             channel
-              .setTyping?.(chatJid, true)
+              .setTyping?.(chatJid, true, typingThreadId)
               ?.catch((err) =>
                 logger.warn({ chatJid, err }, 'Failed to set typing indicator'),
               );
@@ -671,8 +760,13 @@ async function startMessageLoop(): Promise<void> {
  */
 function recoverPendingMessages(): void {
   for (const [chatJid, group] of Object.entries(registeredGroups)) {
-    const sinceTimestamp = lastAgentTimestamp[chatJid] || '';
-    const pending = getMessagesSince(chatJid, sinceTimestamp, ASSISTANT_NAME);
+    const pending = isSlackJid(chatJid)
+      ? getPendingMessages(chatJid, ASSISTANT_NAME)
+      : getMessagesSince(
+          chatJid,
+          lastAgentTimestamp[chatJid] || '',
+          ASSISTANT_NAME,
+        );
     if (pending.length > 0) {
       logger.info(
         { group: group.name, pendingCount: pending.length },
