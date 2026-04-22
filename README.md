@@ -110,7 +110,7 @@ Inspired by the idea that AI models internalize identity from their training doc
 
 ## SKILL.md
 
-Skills are markdown files that teach the agent how to do specific things — see [Agent Skills](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview). They live in two places for two audiences:
+Skills are markdown files that teach the agent how to do specific things — see [Agent Skills](https://agentskills.io/home). They live in two places for two audiences:
 
 **Host skills** (`.claude/skills/`) — for you, the developer running Claude Code on this machine. These power slash commands like `/setup`, `/debug`, `/customize`, and `/update`. They never enter the container.
 
