@@ -481,6 +481,15 @@ async function processGroupMessages(chatJid: string): Promise<boolean> {
       // Trigger memory update once after the first user-facing response
       if (outputSentToUser && !memoryUpdateTriggered) {
         memoryUpdateTriggered = true;
+        // Clear the typing/status indicator now — the user has their reply.
+        // Memory-update runs silently after this; keeping the indicator up
+        // makes Slack's Assistant UI show "Summarizing findings…" for the
+        // entire memory-update window even though nothing else is coming.
+        channel
+          .setTyping?.(chatJid, false, replyThreadId)
+          ?.catch((err) =>
+            logger.warn({ chatJid, err }, 'Failed to clear typing indicator'),
+          );
         queue.sendMessage(
           chatJid,
           '[SYSTEM] Conversation turn complete. Run /update-memory to process the recent messages into memory. If the conversation contained confirmed building facts (equipment changes, setpoint updates, sensor status, operational changes), also run /update-ontology.',
