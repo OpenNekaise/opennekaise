@@ -64,6 +64,12 @@ export class GroupQueue {
 
     if (state.active) {
       state.pendingMessages = true;
+      // If the container is already idle-waiting, close stdin so it exits
+      // and drainGroup can pick up this batch. Otherwise we'd wait the full
+      // IDLE_TIMEOUT before the next notifyIdle fires.
+      if (state.idleWaiting) {
+        this.closeStdin(groupJid);
+      }
       logger.debug({ groupJid }, 'Container active, message queued');
       return;
     }
