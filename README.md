@@ -135,6 +135,7 @@ To ship your own shared skill set, push a repo with a top-level `skills/<skill-n
 
 ## Reading Materials
 
+- [Behind the Nekaise Agent: the Interface](https://www.linkedin.com/pulse/behind-nekaise-agent-interface-zeng-peng-gtc6f) — Part 2 of the trilogy. Why Nekaise Agent is IM-first with no GUI for humans, and how agent-to-agent communication shapes the surface where work actually happens. *April 2026*
 - [Behind the Nekaise Agent: the Base](https://www.linkedin.com/pulse/behind-nekaise-agent-base-zeng-peng-inh2f) — Part 1 of the trilogy. Why every conversation gets a throwaway sandbox, and how the LLM runtime, skills, and filesystem fit together underneath a Nekaise Agent. *April 2026*
 - [How to Make a Nekaise Agent Live in Slack](https://www.linkedin.com/pulse/how-make-nekaise-agent-live-slack-zeng-peng-9ffrf) — Step-by-step guide to deploying Nekaise Agent in Slack using Claude Code. *March 2026*
 - [LLM API vs LLM Runtime: A Paradigm Shift in LLM Agent Development](https://www.linkedin.com/pulse/llm-api-vs-runtime-paradigm-shift-agent-development-zeng-peng-ukpcf) — Gen 1 (function calling + JSON) vs Gen 2 (LLM as runtime with filesystem and bash) approaches to building agents. *February 2026*
