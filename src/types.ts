@@ -30,6 +30,10 @@ export interface AllowedRoot {
 export interface ContainerConfig {
   additionalMounts?: AdditionalMount[];
   timeout?: number; // Default: 300000 (5 minutes)
+  // Optional per-group env vars passed to the container (e.g. HOME or
+  // XDG_CONFIG_HOME for tools whose credential caches are keyed to specific
+  // paths). These are layered on top of the standard TZ/HOME setup.
+  envOverrides?: Record<string, string>;
 }
 
 export interface RegisteredGroup {

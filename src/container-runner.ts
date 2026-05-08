@@ -4,6 +4,7 @@
  */
 import { ChildProcess, exec, spawn } from 'child_process';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 
 import {
@@ -342,8 +343,19 @@ function readSecrets(): Record<string, string> {
 function buildContainerArgs(
   mounts: VolumeMount[],
   containerName: string,
+  envOverrides?: Record<string, string>,
 ): string[] {
   const args: string[] = ['run', '-i', '--rm', '--name', containerName];
+
+  // Match the host's hostname inside the container. Some host-side CLIs
+  // derive token-encryption keys from `os.hostname()`, so a mismatched
+  // hostname makes mounted credential caches unreadable. Harmless for
+  // everything else.
+  try {
+    args.push('--hostname', os.hostname());
+  } catch {
+    /* hostname() can fail in odd sandboxes — skip silently */
+  }
 
   // Pass host timezone so container's local time matches the user's
   args.push('-e', `TZ=${TIMEZONE}`);
@@ -356,6 +368,14 @@ function buildContainerArgs(
   if (hostUid != null && hostUid !== 0 && hostUid !== 1000) {
     args.push('--user', `${hostUid}:${hostGid}`);
     args.push('-e', 'HOME=/home/node');
+  }
+
+  // Per-group environment overrides for tools whose credential caches are
+  // keyed to specific paths or values (e.g. HOME, XDG_CONFIG_HOME).
+  if (envOverrides) {
+    for (const [k, v] of Object.entries(envOverrides)) {
+      args.push('-e', `${k}=${v}`);
+    }
   }
 
   for (const mount of mounts) {
@@ -389,7 +409,11 @@ export async function runContainerAgent(
   const mounts = buildVolumeMounts(group, input.isMain, input.isDm);
   const safeName = group.folder.replace(/[^a-zA-Z0-9-]/g, '-');
   const containerName = `opennekaise-${safeName}-${Date.now()}`;
-  const containerArgs = buildContainerArgs(mounts, containerName);
+  const containerArgs = buildContainerArgs(
+    mounts,
+    containerName,
+    group.containerConfig?.envOverrides,
+  );
 
   logger.debug(
     {
