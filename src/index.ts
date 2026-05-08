@@ -457,13 +457,69 @@ async function processGroupMessages(chatJid: string): Promise<boolean> {
         outputSentToUser = true;
       }
       if (channel.sendFile && files.length > 0) {
-        const groupDir = resolveGroupFolderPath(group.folder);
-        for (const containerPath of files) {
-          // Resolve container path (/workspace/group/...) to host path
-          const hostPath = containerPath.replace(
-            /^\/workspace\/group\/?/,
-            groupDir + '/',
+        // Resolve and canonicalise the group's host directory once. All file
+        // refs from the agent must land strictly inside this directory after
+        // path normalisation AND symlink resolution — the agent has write
+        // access here (charts, ontology updates) so it could otherwise plant
+        // a symlink and exfiltrate host files via the upload channel.
+        const groupDir = path.resolve(resolveGroupFolderPath(group.folder));
+        const realGroupDir = (() => {
+          try {
+            return fs.realpathSync(groupDir);
+          } catch (err) {
+            logger.warn(
+              { group: group.name, groupDir, err },
+              'Failed to realpath groupDir; skipping file uploads',
+            );
+            return null;
+          }
+        })();
+        const FILE_PREFIX = '/workspace/group/';
+        if (realGroupDir) for (const containerPath of files) {
+          // Anchor: only paths under /workspace/group/ are eligible.
+          if (!containerPath.startsWith(FILE_PREFIX)) {
+            logger.warn(
+              { group: group.name, containerPath },
+              'Rejected file ref: not under /workspace/group',
+            );
+            continue;
+          }
+          const hostPath = path.resolve(
+            groupDir,
+            containerPath.slice(FILE_PREFIX.length),
           );
+          // Canonical containment: catches /workspace/group/../../etc/passwd.
+          if (
+            hostPath !== groupDir &&
+            !hostPath.startsWith(groupDir + path.sep)
+          ) {
+            logger.warn(
+              { group: group.name, containerPath, hostPath },
+              'Rejected file ref: escapes groupDir after path resolution',
+            );
+            continue;
+          }
+          // Symlink containment: resolve the actual file and re-check.
+          let realPath: string;
+          try {
+            realPath = fs.realpathSync(hostPath);
+          } catch (err) {
+            logger.warn(
+              { group: group.name, containerPath, hostPath, err },
+              'Rejected file ref: realpath failed (missing or unreadable)',
+            );
+            continue;
+          }
+          if (
+            realPath !== realGroupDir &&
+            !realPath.startsWith(realGroupDir + path.sep)
+          ) {
+            logger.warn(
+              { group: group.name, containerPath, realPath },
+              'Rejected file ref: symlink escapes groupDir',
+            );
+            continue;
+          }
           try {
             await channel.sendFile(chatJid, hostPath, undefined, replyThreadId);
             outputSentToUser = true;
