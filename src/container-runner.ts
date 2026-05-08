@@ -360,6 +360,12 @@ function buildContainerArgs(
   // Pass host timezone so container's local time matches the user's
   args.push('-e', `TZ=${TIMEZONE}`);
 
+  // Forward OPENAI_API_KEY so skills that call OpenAI APIs (e.g. audio-reply)
+  // can reach them from Bash. Goes via `-e` rather than the secrets/SDK
+  // channel because Bash subprocesses need to see it.
+  const openaiKey = readEnvFile(['OPENAI_API_KEY']).OPENAI_API_KEY;
+  if (openaiKey) args.push('-e', `OPENAI_API_KEY=${openaiKey}`);
+
   // Run as host user so bind-mounted files are accessible.
   // Skip when running as root (uid 0), as the container's node user (uid 1000),
   // or when getuid is unavailable (native Windows without WSL).
