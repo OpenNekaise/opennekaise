@@ -38,6 +38,8 @@ home/*
 .claude/projects/
 .claude/settings.local.json
 
+.claude/skills/copilot-headless-login/
+
 # Skills system (local per-installation state)
 .opennekaise/
 

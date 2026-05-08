@@ -81,9 +81,13 @@ async function runTask(
   );
 
   if (!group) {
+    // Stop hot-loop on orphaned tasks — pause until the group is re-registered
+    // or the user reactivates the task explicitly. Mirrors the early-return
+    // above for invalid group folders.
+    updateTask(task.id, { status: 'paused' });
     logger.error(
       { taskId: task.id, groupFolder: task.group_folder },
-      'Group not found for task',
+      'Group not found for task — paused',
     );
     logTaskRun({
       task_id: task.id,
