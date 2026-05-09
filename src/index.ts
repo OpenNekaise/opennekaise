@@ -51,13 +51,8 @@ import { GroupQueue } from './group-queue.js';
 import { resolveGroupFolderPath } from './group-folder.js';
 import { startIpcWatcher } from './ipc.js';
 import { selectNextMessageBatch } from './message-batches.js';
-import {
-  extractFileRefs,
-  findChannel,
-  formatMessages,
-  formatOutbound,
-  stripInternalTags,
-} from './router.js';
+import { findChannel, formatMessages } from './router.js';
+import { sendOutboundWithFiles } from './outbound.js';
 import { startSchedulerLoop } from './task-scheduler.js';
 import { Channel, NewMessage, RegisteredGroup } from './types.js';
 import { readEnvFile } from './env.js';
@@ -446,91 +441,16 @@ async function processGroupMessages(chatJid: string): Promise<boolean> {
         typeof result.result === 'string'
           ? result.result
           : JSON.stringify(result.result);
-      // Strip <internal> blocks — agent uses these for internal reasoning
-      const stripped = stripInternalTags(raw);
       logger.info({ group: group.name }, `Agent output: ${raw.slice(0, 200)}`);
 
-      // Extract <file> tags and upload referenced files
-      const { files, text } = extractFileRefs(stripped);
-      if (text) {
-        await channel.sendMessage(chatJid, text, replyThreadId);
-        outputSentToUser = true;
-      }
-      if (channel.sendFile && files.length > 0) {
-        // Resolve and canonicalise the group's host directory once. All file
-        // refs from the agent must land strictly inside this directory after
-        // path normalisation AND symlink resolution — the agent has write
-        // access here (charts, ontology updates) so it could otherwise plant
-        // a symlink and exfiltrate host files via the upload channel.
-        const groupDir = path.resolve(resolveGroupFolderPath(group.folder));
-        const realGroupDir = (() => {
-          try {
-            return fs.realpathSync(groupDir);
-          } catch (err) {
-            logger.warn(
-              { group: group.name, groupDir, err },
-              'Failed to realpath groupDir; skipping file uploads',
-            );
-            return null;
-          }
-        })();
-        const FILE_PREFIX = '/workspace/group/';
-        if (realGroupDir) for (const containerPath of files) {
-          // Anchor: only paths under /workspace/group/ are eligible.
-          if (!containerPath.startsWith(FILE_PREFIX)) {
-            logger.warn(
-              { group: group.name, containerPath },
-              'Rejected file ref: not under /workspace/group',
-            );
-            continue;
-          }
-          const hostPath = path.resolve(
-            groupDir,
-            containerPath.slice(FILE_PREFIX.length),
-          );
-          // Canonical containment: catches /workspace/group/../../etc/passwd.
-          if (
-            hostPath !== groupDir &&
-            !hostPath.startsWith(groupDir + path.sep)
-          ) {
-            logger.warn(
-              { group: group.name, containerPath, hostPath },
-              'Rejected file ref: escapes groupDir after path resolution',
-            );
-            continue;
-          }
-          // Symlink containment: resolve the actual file and re-check.
-          let realPath: string;
-          try {
-            realPath = fs.realpathSync(hostPath);
-          } catch (err) {
-            logger.warn(
-              { group: group.name, containerPath, hostPath, err },
-              'Rejected file ref: realpath failed (missing or unreadable)',
-            );
-            continue;
-          }
-          if (
-            realPath !== realGroupDir &&
-            !realPath.startsWith(realGroupDir + path.sep)
-          ) {
-            logger.warn(
-              { group: group.name, containerPath, realPath },
-              'Rejected file ref: symlink escapes groupDir',
-            );
-            continue;
-          }
-          try {
-            await channel.sendFile(chatJid, hostPath, undefined, replyThreadId);
-            outputSentToUser = true;
-          } catch (err) {
-            logger.warn(
-              { group: group.name, containerPath, hostPath, err },
-              'Failed to send file',
-            );
-          }
-        }
-      }
+      const sent = await sendOutboundWithFiles(
+        channel,
+        group,
+        chatJid,
+        raw,
+        replyThreadId,
+      );
+      if (sent) outputSentToUser = true;
       // Only reset idle timer on actual results, not session-update markers (result: null)
       resetIdleTimer();
 
@@ -912,14 +832,13 @@ async function main(): Promise<void> {
     queue,
     onProcess: (groupJid, proc, containerName, groupFolder) =>
       queue.registerProcess(groupJid, proc, containerName, groupFolder),
-    sendMessage: async (jid, rawText) => {
+    sendMessage: async (group, jid, rawText) => {
       const channel = findChannel(channels, jid);
       if (!channel) {
         logger.warn({ jid }, 'No channel owns JID, cannot send message');
         return;
       }
-      const text = formatOutbound(rawText);
-      if (text) await channel.sendMessage(jid, text);
+      await sendOutboundWithFiles(channel, group, jid, rawText);
     },
   });
   startIpcWatcher({
