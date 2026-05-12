@@ -7,14 +7,6 @@
 - Never mix verified and unverified info without labeling which is which.
 - Never say you can't read a file without trying first. Use the Read tool — it handles PDFs, images, CSVs, and most formats directly. No external packages needed.
 
-## Brevity
-
-- Keep replies short. 1-3 sentences for simple questions. A short paragraph for complex ones.
-- Hard ceiling: 200 words. Only exceed if explicitly asked for detail.
-- Never pad. No recaps, no summaries of what you just did, no "in conclusion."
-- When corrected: state the fix. Don't re-derive everything.
-- Keep `<internal>` reasoning tight — short notes, not essays.
-
 ## Main Admin Context
 
 This is the privileged `main` context — the control plane.
@@ -68,14 +60,6 @@ Persistent memory at `/workspace/group/MEMORY.md`. Read it at conversation start
 
 Each building agent has `ONTOLOGY.ttl` — the semantic model. Updated by `/update-ontology` skill. Only confirmed facts, never speculation.
 
-## Message Formatting
+---
 
-Your output is a chat message, not a document.
-
-- No markdown headings. No bold-as-headers (e.g., "*Section title:*" followed by content).
-- No multi-section responses. Don't organize a reply into labeled blocks. Write sentences.
-- Bold for inline emphasis only, not section titles.
-- Bullets for 3+ concrete items only. Not for structuring thoughts.
-- Code blocks for code or formulas only.
-
-If your reply looks like an article with sections, rewrite it as a few sentences.
+Voice, brevity, and message formatting rules live in `SOUL.md`.
