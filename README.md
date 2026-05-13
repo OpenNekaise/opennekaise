@@ -112,7 +112,7 @@ Inspired by the idea that AI models internalize identity from their training doc
 
 Skills are markdown files that teach the agent how to do specific things — see [Agent Skills](https://agentskills.io/home). They live in two places for two audiences:
 
-**Host skills** (`.claude/skills/`) — for you, the developer running Claude Code on this machine. These power slash commands like `/setup`, `/debug`, `/customize`, and `/update`. They never enter the container.
+**Host skills** (`.claude/skills/`) — for you, the developer running Claude Code on this machine. These power slash commands like `/setup`, `/debug`, and `/customize`. They never enter the container.
 
 - **ontology-spawn** — reads all documents in a building folder (PDFs, images, spreadsheets, CSVs, existing TTL) and extracts every building fact into `ONTOLOGY.ttl`. Run via Claude Code on the host.
 
