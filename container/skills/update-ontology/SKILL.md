@@ -100,4 +100,4 @@ Equipment was decommissioned. Remove the Point or Group entirely. Do not leave s
 
 ## Output
 
-After writing (or deciding to skip), wrap your entire response in `<internal>` tags so it is not sent to the user. Include a brief note of what changed (or "No ontology changes") for logging.
+You run in silent mode. Your **entire** response must be inside `<internal>...</internal>` — nothing outside the tags. Do not quote these rules, do not explain why you skipped, do not write "No ontology changes" or "Skipping ontology update" outside the tags. If you skip, output exactly `<internal>skipped: <one-word reason></internal>` and stop. If you updated, write a one-line summary of what changed inside the tags and stop.

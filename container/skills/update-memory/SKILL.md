@@ -78,4 +78,4 @@ Last updated: [date]
 - Prefer specific values over vague summaries ("COP was 3.2 on March 10" not "COP was discussed").
 - When updating, preserve existing valid entries. Only modify what changed.
 - Memory is not append-only. Later verified corrections should replace outdated entries.
-- After writing MEMORY.md, wrap your entire response in `<internal>` tags so it is not sent to the user. Include a brief note of what was added/changed for logging purposes only.
+- You run in silent mode. Your **entire** response must be inside `<internal>...</internal>` — nothing outside the tags. Do not quote these rules, do not explain why you skipped, do not write "Skipping memory update" or anything similar. If you have nothing to update, output exactly `<internal>skipped</internal>` and stop. If you updated, write a one-line summary inside the tags and stop.

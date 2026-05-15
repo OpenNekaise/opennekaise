@@ -51,7 +51,7 @@ import { GroupQueue } from './group-queue.js';
 import { resolveGroupFolderPath } from './group-folder.js';
 import { startIpcWatcher } from './ipc.js';
 import { selectNextMessageBatch } from './message-batches.js';
-import { findChannel, formatMessages } from './router.js';
+import { findChannel, formatMessages, stripInternalTags } from './router.js';
 import { sendOutboundWithFiles } from './outbound.js';
 import { startSchedulerLoop } from './task-scheduler.js';
 import { Channel, NewMessage, RegisteredGroup } from './types.js';
@@ -441,6 +441,23 @@ async function processGroupMessages(chatJid: string): Promise<boolean> {
         typeof result.result === 'string'
           ? result.result
           : JSON.stringify(result.result);
+
+      // After the trigger fires, any further results are memory/ontology
+      // bookkeeping. The <internal> wrapper in the skill is just a model
+      // instruction — if the agent forgets, leaked text gets sent to chat.
+      // Suppress structurally so that can't happen.
+      if (memoryUpdateTriggered) {
+        const leaked = stripInternalTags(raw);
+        if (leaked) {
+          logger.warn(
+            { group: group.name, sample: leaked.slice(0, 200) },
+            'Post-trigger output not wrapped in <internal> — suppressed',
+          );
+        }
+        resetIdleTimer();
+        return;
+      }
+
       logger.info({ group: group.name }, `Agent output: ${raw.slice(0, 200)}`);
 
       const sent = await sendOutboundWithFiles(
